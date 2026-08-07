@@ -3,6 +3,8 @@ const cors = require("cors");
 const db = require("./config/db");
 
 const app = express();
+const tableRoutes = require("./routes/tableRoutes");
+app.use("/api", tableRoutes);
 
 app.use(cors());
 app.use(express.json());
