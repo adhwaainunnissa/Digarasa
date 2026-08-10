@@ -1,9 +1,12 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Database from "./pages/Database";
 
 function App() {
-  return (
+    return <Database />;}
+{
+ (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
@@ -12,5 +15,6 @@ function App() {
     </BrowserRouter>
   );
 }
+
 
 export default App;

@@ -1,13 +1,25 @@
 const express = require("express");
 const cors = require("cors");
 const db = require("./config/db");
+const tableRoutes = require("./routes/tableRoutes");
 
 const app = express();
-const tableRoutes = require("./routes/tableRoutes");
-app.use("/api", tableRoutes);
 
-app.use(cors());
+// ===============================
+// MIDDLEWARE
+// ===============================
+
+app.use(
+    cors({
+        origin: "http://localhost:5173",
+    })
+);
+
 app.use(express.json());
+
+// ===============================
+// ROUTES
+// ===============================
 
 app.get("/", (req, res) => {
     res.send("Backend berjalan 🚀");
@@ -17,18 +29,27 @@ app.get("/", (req, res) => {
 app.get("/test-db", async (req, res) => {
     try {
         const result = await db.query("SELECT NOW()");
+
         res.status(200).json({
             status: "success",
             waktu_server: result.rows[0].now,
         });
     } catch (err) {
         console.error(err);
+
         res.status(500).json({
             status: "error",
             message: err.message,
         });
     }
 });
+
+// Route database/tabel
+app.use("/api", tableRoutes);
+
+// ===============================
+// SERVER
+// ===============================
 
 const PORT = 5000;
 
