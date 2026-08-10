@@ -43,6 +43,85 @@ exports.getSchema = async (table) => {
 
 
 // ========================================
+// GET TABLE INFO
+// ========================================
+
+exports.getTableInfo = async (table) => {
+
+    // ------------------------------------
+    // Cek apakah tabel ada
+    // ------------------------------------
+
+    const tableResult = await db.query(
+        `
+        SELECT
+            table_name,
+            table_type
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = $1
+        `,
+        [table]
+    );
+
+    if (tableResult.rows.length === 0) {
+        throw new Error(
+            `Tabel "${table}" tidak ditemukan`
+        );
+    }
+
+
+    // ------------------------------------
+    // Ambil informasi kolom
+    // ------------------------------------
+
+    const columnResult = await db.query(
+        `
+        SELECT
+            c.column_name,
+            c.data_type,
+            c.is_nullable,
+            c.column_default,
+
+            CASE
+                WHEN tc.constraint_type = 'PRIMARY KEY'
+                THEN true
+                ELSE false
+            END AS is_primary_key
+
+        FROM information_schema.columns c
+
+        LEFT JOIN information_schema.key_column_usage kcu
+            ON c.table_schema = kcu.table_schema
+            AND c.table_name = kcu.table_name
+            AND c.column_name = kcu.column_name
+
+        LEFT JOIN information_schema.table_constraints tc
+            ON kcu.constraint_name = tc.constraint_name
+            AND kcu.table_schema = tc.table_schema
+            AND kcu.table_name = tc.table_name
+
+        WHERE c.table_schema = 'public'
+          AND c.table_name = $1
+
+        ORDER BY c.ordinal_position
+        `,
+        [table]
+    );
+
+
+    // ------------------------------------
+    // Return
+    // ------------------------------------
+
+    return {
+        table: tableResult.rows[0],
+        columns: columnResult.rows,
+    };
+};
+
+
+// ========================================
 // GET DATA + PAGINATION + SEARCH
 // ========================================
 
@@ -74,14 +153,13 @@ exports.getData = async (
         limit = 20;
     }
 
-    // Maksimal 100 data per request
     if (limit > 100) {
         limit = 100;
     }
 
 
     // ------------------------------------
-    // Pastikan tabel memang ada
+    // Pastikan tabel ada
     // ------------------------------------
 
     const tableResult = await db.query(
@@ -95,12 +173,14 @@ exports.getData = async (
     );
 
     if (tableResult.rows.length === 0) {
-        throw new Error(`Tabel "${table}" tidak ditemukan`);
+        throw new Error(
+            `Tabel "${table}" tidak ditemukan`
+        );
     }
 
 
     // ------------------------------------
-    // Ambil nama kolom
+    // Ambil kolom
     // ------------------------------------
 
     const columnResult = await db.query(
@@ -127,13 +207,12 @@ exports.getData = async (
 
 
     // ------------------------------------
-    // Escape identifier PostgreSQL
+    // Escape identifier
     // ------------------------------------
 
     const quoteIdentifier = (identifier) => {
         return `"${identifier.replace(/"/g, '""')}"`;
     };
-
 
     const quotedTable = quoteIdentifier(table);
 
@@ -168,7 +247,7 @@ exports.getData = async (
 
 
     // ------------------------------------
-    // COUNT TOTAL DATA
+    // COUNT TOTAL
     // ------------------------------------
 
     const countQuery = `
@@ -189,7 +268,7 @@ exports.getData = async (
 
 
     // ------------------------------------
-    // PAGINATION
+    // OFFSET
     // ------------------------------------
 
     const offset = (page - 1) * limit;
@@ -223,8 +302,9 @@ exports.getData = async (
     // TOTAL PAGES
     // ------------------------------------
 
-    const totalPages =
-        Math.ceil(total / limit);
+    const totalPages = Math.ceil(
+        total / limit
+    );
 
 
     // ------------------------------------
@@ -241,4 +321,126 @@ exports.getData = async (
             totalPages,
         },
     };
+
+exports.insertData = async (table, data) => {
+
+    // ========================================
+    // CEK TABEL
+    // ========================================
+
+    const tableResult = await db.query(
+        `
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = $1
+        `,
+        [table]
+    );
+
+    if (tableResult.rows.length === 0) {
+        throw new Error(
+            `Tabel "${table}" tidak ditemukan`
+        );
+    }
+
+
+    // ========================================
+    // AMBIL KOLOM TABEL
+    // ========================================
+
+    const columnResult = await db.query(
+        `
+        SELECT
+            column_name,
+            column_default
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = $1
+        ORDER BY ordinal_position
+        `,
+        [table]
+    );
+
+
+    // ========================================
+    // KOLOM YANG BOLEH DIISI
+    // ========================================
+
+    const allowedColumns = columnResult.rows
+        .filter((column) => {
+            return !(
+                column.column_default &&
+                column.column_default.includes(
+                    "nextval"
+                )
+            );
+        })
+        .map((column) => column.column_name);
+
+
+    // ========================================
+    // FILTER DATA USER
+    // ========================================
+
+    const inputColumns = Object.keys(data).filter(
+        (column) =>
+            allowedColumns.includes(column)
+    );
+
+
+    if (inputColumns.length === 0) {
+        throw new Error(
+            "Tidak ada data yang dapat dimasukkan"
+        );
+    }
+
+
+    // ========================================
+    // BUAT QUERY
+    // ========================================
+
+    const values = inputColumns.map(
+        (column) => data[column]
+    );
+
+    const placeholders = inputColumns.map(
+        (_, index) => `$${index + 1}`
+    );
+
+
+    const quoteIdentifier = (identifier) => {
+        return `"${identifier.replace(/"/g, '""')}"`;
+    };
+
+
+    const quotedTable =
+        quoteIdentifier(table);
+
+    const quotedColumns =
+        inputColumns
+            .map(quoteIdentifier)
+            .join(", ");
+
+
+    const query = `
+        INSERT INTO ${quotedTable}
+        (${quotedColumns})
+        VALUES (${placeholders.join(", ")})
+        RETURNING *
+    `;
+
+
+    // ========================================
+    // EXECUTE
+    // ========================================
+
+    const result = await db.query(
+        query,
+        values
+    );
+
+
+    return result.rows[0];
+};
 };

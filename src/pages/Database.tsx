@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 
-type TableInfo = {
+type Table = {
     table_name: string;
 };
+
+type Column = {
+    column_name: string;
+    data_type: string;
+};
+
+type RowData = Record<string, unknown>;
 
 type Pagination = {
     page: number;
@@ -13,22 +20,28 @@ type Pagination = {
 };
 
 function Database() {
-    const [tables, setTables] = useState<TableInfo[]>([]);
+    const [tables, setTables] = useState<Table[]>([]);
     const [selectedTable, setSelectedTable] = useState<string | null>(null);
 
-    const [data, setData] = useState<Record<string, any>[]>([]);
+    const [columns, setColumns] = useState<Column[]>([]);
+    const [data, setData] = useState<RowData[]>([]);
+
+    const [search, setSearch] = useState("");
+
     const [pagination, setPagination] = useState<Pagination>({
         page: 1,
-        limit: 5,
+        limit: 10,
         total: 0,
         totalPages: 0,
     });
 
-    const [loading, setLoading] = useState(false);
+    const [loadingTables, setLoadingTables] = useState(true);
+    const [loadingData, setLoadingData] = useState(false);
 
-    // ==============================
+
+    // ========================================
     // AMBIL DAFTAR TABEL
-    // ==============================
+    // ========================================
 
     useEffect(() => {
         const getTables = async () => {
@@ -38,338 +51,511 @@ function Database() {
                 setTables(response.data);
             } catch (error) {
                 console.error("Gagal mengambil tabel:", error);
+            } finally {
+                setLoadingTables(false);
             }
         };
 
         getTables();
     }, []);
 
-    // ==============================
+
+    // ========================================
     // AMBIL DATA TABEL
-    // ==============================
+    // ========================================
 
     const getTableData = async (
         tableName: string,
-        page: number = 1
+        page = 1,
+        searchValue = search
     ) => {
         try {
-            setLoading(true);
+            setLoadingData(true);
 
-            const response = await api.get(
-                `/tables/${tableName}?page=${page}&limit=5`
+            // Ambil schema
+            const schemaResponse = await api.get(
+                `/tables/${encodeURIComponent(tableName)}/schema`
             );
 
-            setData(response.data.data);
-            setPagination(response.data.pagination);
+            setColumns(schemaResponse.data);
+
+
+            // Ambil data
+            const dataResponse = await api.get(
+                `/tables/${encodeURIComponent(tableName)}`,
+                {
+                    params: {
+                        page,
+                        limit: 10,
+                        search: searchValue,
+                    },
+                }
+            );
+
+
+            setData(dataResponse.data.data);
+
+            setPagination(dataResponse.data.pagination);
+
         } catch (error) {
-            console.error("Gagal mengambil data tabel:", error);
+            console.error(
+                "Gagal mengambil data tabel:",
+                error
+            );
 
             setData([]);
+
         } finally {
-            setLoading(false);
+            setLoadingData(false);
         }
     };
 
-    // ==============================
-    // KLIK TABEL
-    // ==============================
 
-    const handleTableClick = (tableName: string) => {
+    // ========================================
+    // KLIK TABEL
+    // ========================================
+
+    const handleTableClick = async (tableName: string) => {
         setSelectedTable(tableName);
 
-        getTableData(tableName, 1);
+        setSearch("");
+
+        setPagination({
+            page: 1,
+            limit: 10,
+            total: 0,
+            totalPages: 0,
+        });
+
+        await getTableData(tableName, 1, "");
     };
 
-    // ==============================
-    // PAGINATION
-    // ==============================
 
-    const handlePrevious = () => {
+    // ========================================
+    // SEARCH
+    // ========================================
+
+    const handleSearch = async () => {
         if (!selectedTable) return;
 
-        if (pagination.page > 1) {
-            getTableData(
-                selectedTable,
-                pagination.page - 1
-            );
-        }
+        await getTableData(
+            selectedTable,
+            1,
+            search
+        );
     };
 
-    const handleNext = () => {
+
+    // ========================================
+    // GANTI HALAMAN
+    // ========================================
+
+    const handlePageChange = async (page: number) => {
         if (!selectedTable) return;
 
         if (
-            pagination.page < pagination.totalPages
+            page < 1 ||
+            page > pagination.totalPages
         ) {
-            getTableData(
-                selectedTable,
-                pagination.page + 1
-            );
+            return;
         }
+
+        await getTableData(
+            selectedTable,
+            page,
+            search
+        );
     };
 
-    // ==============================
-    // RENDER
-    // ==============================
 
     return (
         <div
             style={{
-                display: "flex",
-                minHeight: "100vh",
-                fontFamily: "Arial",
+                padding: "30px",
+                fontFamily: "Arial, sans-serif",
             }}
         >
-            {/* =========================
-                SIDEBAR
-            ========================= */}
 
-            <div
-                style={{
-                    width: "250px",
-                    borderRight: "1px solid #ddd",
-                    padding: "20px",
-                }}
-            >
-                <h2>Database Explorer</h2>
+            {/* ========================================
+                JUDUL
+            ======================================== */}
 
-                <p>
-                    {tables.length} tabel
-                </p>
+            <h1>Database Explorer</h1>
 
-                {tables.map((table) => (
-                    <button
-                        key={table.table_name}
-                        onClick={() =>
-                            handleTableClick(
-                                table.table_name
-                            )
-                        }
+
+            {/* ========================================
+                DAFTAR TABEL
+            ======================================== */}
+
+            <section>
+                <h2>Daftar Tabel</h2>
+
+                {loadingTables ? (
+                    <p>Memuat tabel...</p>
+                ) : (
+                    <div
                         style={{
-                            display: "block",
-                            width: "100%",
-                            padding: "10px",
-                            marginBottom: "5px",
-                            textAlign: "left",
-                            cursor: "pointer",
-                            border: "1px solid #ddd",
-                            background:
-                                selectedTable ===
-                                table.table_name
-                                    ? "#eee"
-                                    : "white",
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "8px",
                         }}
                     >
-                        🗄️ {table.table_name}
-                    </button>
-                ))}
-            </div>
 
-            {/* =========================
-                CONTENT
-            ========================= */}
+                        {tables.map((table) => (
+                            <button
+                                key={table.table_name}
+                                onClick={() =>
+                                    handleTableClick(
+                                        table.table_name
+                                    )
+                                }
+                                style={{
+                                    padding:
+                                        "8px 12px",
+                                    cursor: "pointer",
 
-            <div
+                                    background:
+                                        selectedTable ===
+                                        table.table_name
+                                            ? "#2563eb"
+                                            : "#f3f4f6",
+
+                                    color:
+                                        selectedTable ===
+                                        table.table_name
+                                            ? "white"
+                                            : "black",
+
+                                    border:
+                                        "1px solid #ccc",
+
+                                    borderRadius:
+                                        "5px",
+                                }}
+                            >
+                                {table.table_name}
+                            </button>
+                        ))}
+
+                    </div>
+                )}
+            </section>
+
+
+            <hr
                 style={{
-                    flex: 1,
-                    padding: "30px",
-                    overflowX: "auto",
+                    margin: "30px 0",
                 }}
-            >
-                {!selectedTable ? (
-                    <div>
-                        <h1>Database Explorer</h1>
+            />
+
+
+            {/* ========================================
+                DATA TABEL
+            ======================================== */}
+
+            {selectedTable && (
+                <section>
+
+                    <h2>
+                        Data: {selectedTable}
+                    </h2>
+
+
+                    {/* SEARCH */}
+
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: "10px",
+                            marginBottom: "15px",
+                        }}
+                    >
+
+                        <input
+                            type="text"
+                            placeholder="Cari data..."
+                            value={search}
+                            onChange={(e) =>
+                                setSearch(e.target.value)
+                            }
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleSearch();
+                                }
+                            }}
+                            style={{
+                                padding: "10px",
+                                width: "300px",
+                                border:
+                                    "1px solid #ccc",
+                                borderRadius:
+                                    "5px",
+                            }}
+                        />
+
+                        <button
+                            onClick={handleSearch}
+                            style={{
+                                padding:
+                                    "10px 15px",
+                                cursor: "pointer",
+                            }}
+                        >
+                            Cari
+                        </button>
+
+                    </div>
+
+
+                    {/* INFO PAGINATION */}
+
+                    <p>
+                        Menampilkan{" "}
+                        {data.length} data dari{" "}
+                        {pagination.total} data
+                    </p>
+
+
+                    {/* LOADING */}
+
+                    {loadingData ? (
+                        <p>Memuat data...</p>
+                    ) : data.length === 0 ? (
 
                         <p>
-                            Pilih tabel di sebelah kiri
-                            untuk melihat data.
+                            Tidak ada data ditemukan.
                         </p>
-                    </div>
-                ) : (
-                    <>
+
+                    ) : (
+
+                        /* ========================================
+                           TABLE
+                        ======================================== */
+
+                        <div
+                            style={{
+                                overflowX: "auto",
+                                border:
+                                    "1px solid #ddd",
+                            }}
+                        >
+
+                            <table
+                                style={{
+                                    borderCollapse:
+                                        "collapse",
+                                    width: "100%",
+                                }}
+                            >
+
+                                <thead>
+
+                                    <tr>
+
+                                        {columns.map(
+                                            (column) => (
+                                                <th
+                                                    key={
+                                                        column.column_name
+                                                    }
+                                                    style={{
+                                                        border:
+                                                            "1px solid #ddd",
+                                                        padding:
+                                                            "10px",
+                                                        textAlign:
+                                                            "left",
+                                                        whiteSpace:
+                                                            "nowrap",
+                                                        background:
+                                                            "#f3f4f6",
+                                                    }}
+                                                >
+                                                    {
+                                                        column.column_name
+                                                    }
+                                                </th>
+                                            )
+                                        )}
+
+                                    </tr>
+
+                                </thead>
+
+
+                                <tbody>
+
+                                    {data.map(
+                                        (
+                                            row,
+                                            rowIndex
+                                        ) => (
+
+                                            <tr
+                                                key={
+                                                    rowIndex
+                                                }
+                                            >
+
+                                                {columns.map(
+                                                    (
+                                                        column
+                                                    ) => (
+
+                                                        <td
+                                                            key={
+                                                                column.column_name
+                                                            }
+                                                            style={{
+                                                                border:
+                                                                    "1px solid #ddd",
+                                                                padding:
+                                                                    "10px",
+                                                                whiteSpace:
+                                                                    "nowrap",
+                                                            }}
+                                                        >
+
+                                                            {row[
+                                                                column
+                                                                    .column_name
+                                                            ] !==
+                                                                null &&
+                                                            row[
+                                                                column
+                                                                    .column_name
+                                                            ] !==
+                                                                undefined
+                                                                ? String(
+                                                                      row[
+                                                                          column
+                                                                              .column_name
+                                                                      ]
+                                                                  )
+                                                                : "-"}
+
+                                                        </td>
+
+                                                    )
+                                                )}
+
+                                            </tr>
+
+                                        )
+                                    )}
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    )}
+
+
+                    {/* ========================================
+                        PAGINATION
+                    ======================================== */}
+
+                    {pagination.totalPages >
+                        1 && (
+
                         <div
                             style={{
                                 display: "flex",
-                                justifyContent:
-                                    "space-between",
-                                alignItems: "center",
+                                gap: "5px",
+                                marginTop: "20px",
+                                alignItems:
+                                    "center",
                             }}
                         >
-                            <div>
-                                <h1>
-                                    {selectedTable}
-                                </h1>
 
-                                <p>
-                                    Total data:{" "}
-                                    {
-                                        pagination.total
-                                    }
-                                </p>
-                            </div>
+                            <button
+                                onClick={() =>
+                                    handlePageChange(
+                                        pagination.page -
+                                            1
+                                    )
+                                }
+                                disabled={
+                                    pagination.page ===
+                                    1
+                                }
+                            >
+                                ←
+                            </button>
+
+
+                            {Array.from(
+                                {
+                                    length:
+                                        pagination.totalPages,
+                                },
+                                (_, index) => {
+
+                                    const page =
+                                        index + 1;
+
+                                    return (
+                                        <button
+                                            key={page}
+                                            onClick={() =>
+                                                handlePageChange(
+                                                    page
+                                                )
+                                            }
+                                            style={{
+                                                padding:
+                                                    "5px 10px",
+
+                                                background:
+                                                    pagination.page ===
+                                                    page
+                                                        ? "#2563eb"
+                                                        : "#f3f4f6",
+
+                                                color:
+                                                    pagination.page ===
+                                                    page
+                                                        ? "white"
+                                                        : "black",
+
+                                                border:
+                                                    "1px solid #ccc",
+
+                                                cursor:
+                                                    "pointer",
+                                            }}
+                                        >
+                                            {page}
+                                        </button>
+                                    );
+                                }
+                            )}
+
+
+                            <button
+                                onClick={() =>
+                                    handlePageChange(
+                                        pagination.page +
+                                            1
+                                    )
+                                }
+                                disabled={
+                                    pagination.page ===
+                                    pagination.totalPages
+                                }
+                            >
+                                →
+                            </button>
+
                         </div>
 
-                        {/* =====================
-                            LOADING
-                        ===================== */}
+                    )}
 
-                        {loading ? (
-                            <p>
-                                Loading data...
-                            </p>
-                        ) : data.length === 0 ? (
-                            <p>
-                                Tidak ada data.
-                            </p>
-                        ) : (
-                            <>
-                                {/* =====================
-                                    TABLE
-                                ===================== */}
+                </section>
+            )}
 
-                                <table
-                                    style={{
-                                        width: "100%",
-                                        borderCollapse:
-                                            "collapse",
-                                    }}
-                                >
-                                    <thead>
-                                        <tr>
-                                            {Object.keys(
-                                                data[0]
-                                            ).map(
-                                                (
-                                                    column
-                                                ) => (
-                                                    <th
-                                                        key={
-                                                            column
-                                                        }
-                                                        style={{
-                                                            border:
-                                                                "1px solid #ddd",
-                                                            padding:
-                                                                "10px",
-                                                            textAlign:
-                                                                "left",
-                                                            background:
-                                                                "#f5f5f5",
-                                                        }}
-                                                    >
-                                                        {
-                                                            column
-                                                        }
-                                                    </th>
-                                                )
-                                            )}
-                                        </tr>
-                                    </thead>
-
-                                    <tbody>
-                                        {data.map(
-                                            (
-                                                row,
-                                                index
-                                            ) => (
-                                                <tr
-                                                    key={
-                                                        index
-                                                    }
-                                                >
-                                                    {Object.keys(
-                                                        data[0]
-                                                    ).map(
-                                                        (
-                                                            column
-                                                        ) => (
-                                                            <td
-                                                                key={
-                                                                    column
-                                                                }
-                                                                style={{
-                                                                    border:
-                                                                        "1px solid #ddd",
-                                                                    padding:
-                                                                        "10px",
-                                                                }}
-                                                            >
-                                                                {row[
-                                                                    column
-                                                                ] ===
-                                                                null
-                                                                    ? "-"
-                                                                    : String(
-                                                                          row[
-                                                                              column
-                                                                          ]
-                                                                      )}
-                                                            </td>
-                                                        )
-                                                    )}
-                                                </tr>
-                                            )
-                                        )}
-                                    </tbody>
-                                </table>
-
-                                {/* =====================
-                                    PAGINATION
-                                ===================== */}
-
-                                <div
-                                    style={{
-                                        display:
-                                            "flex",
-                                        justifyContent:
-                                            "center",
-                                        alignItems:
-                                            "center",
-                                        gap: "15px",
-                                        marginTop:
-                                            "20px",
-                                    }}
-                                >
-                                    <button
-                                        onClick={
-                                            handlePrevious
-                                        }
-                                        disabled={
-                                            pagination.page ===
-                                            1
-                                        }
-                                    >
-                                        ← Previous
-                                    </button>
-
-                                    <span>
-                                        Page{" "}
-                                        {
-                                            pagination.page
-                                        }{" "}
-                                        of{" "}
-                                        {
-                                            pagination.totalPages
-                                        }
-                                    </span>
-
-                                    <button
-                                        onClick={
-                                            handleNext
-                                        }
-                                        disabled={
-                                            pagination.page ===
-                                            pagination.totalPages
-                                        }
-                                    >
-                                        Next →
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                    </>
-                )}
-            </div>
         </div>
     );
 }

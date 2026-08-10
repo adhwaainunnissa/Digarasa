@@ -1,5 +1,9 @@
 const tableService = require("../services/tableService");
 
+// ========================================
+// GET SEMUA TABEL
+// ========================================
+
 exports.getTables = async (req, res) => {
     try {
         const tables = await tableService.getTables();
@@ -13,6 +17,11 @@ exports.getTables = async (req, res) => {
         });
     }
 };
+
+
+// ========================================
+// GET SCHEMA
+// ========================================
 
 exports.getSchema = async (req, res) => {
     try {
@@ -30,6 +39,32 @@ exports.getSchema = async (req, res) => {
     }
 };
 
+
+// ========================================
+// GET TABLE INFO
+// ========================================
+
+exports.getTableInfo = async (req, res) => {
+    try {
+        const info = await tableService.getTableInfo(
+            req.params.table
+        );
+
+        res.json(info);
+    } catch (err) {
+        console.error(err);
+
+        res.status(500).json({
+            error: err.message,
+        });
+    }
+};
+
+
+// ========================================
+// GET DATA
+// ========================================
+
 exports.getData = async (req, res) => {
     try {
         const table = req.params.table;
@@ -46,6 +81,35 @@ exports.getData = async (req, res) => {
         );
 
         res.json(result);
+    } catch (err) {
+        console.error(err);
+
+        res.status(500).json({
+            error: err.message,
+        });
+    }
+};
+
+
+// ========================================
+// INSERT DATA
+// ========================================
+
+exports.insertData = async (req, res) => {
+    try {
+        const table = req.params.table;
+        const data = req.body;
+
+        const result = await tableService.insertData(
+            table,
+            data
+        );
+
+        res.status(201).json({
+            message: "Data berhasil ditambahkan",
+            data: result,
+        });
+
     } catch (err) {
         console.error(err);
 
