@@ -118,3 +118,63 @@ exports.insertData = async (req, res) => {
         });
     }
 };
+
+
+// ========================================
+// UPDATE DATA
+// ========================================
+
+exports.updateData = async (req, res) => {
+    try {
+        const table = req.params.table;
+        const id = req.params.id;
+        const data = req.body;
+
+        const result = await tableService.updateData(
+            table,
+            id,
+            data
+        );
+
+        res.json({
+            message: "Data berhasil diperbarui",
+            data: result,
+        });
+
+    } catch (err) {
+        console.error(err);
+
+        res.status(500).json({
+            error: err.message,
+        });
+    }
+};
+
+
+// ========================================
+// DELETE DATA
+// ========================================
+
+exports.deleteData = async (req, res) => {
+    try {
+        const table = req.params.table;
+        const id = req.params.id;
+
+        const result = await tableService.deleteData(
+            table,
+            id
+        );
+
+        res.json({
+            message: "Data berhasil dihapus",
+            data: result,
+        });
+
+    } catch (err) {
+        console.error(err);
+
+        res.status(500).json({
+            error: err.message,
+        });
+    }
+};

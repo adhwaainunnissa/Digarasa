@@ -1,5 +1,5 @@
 const db = require("../config/db");
-
+const tableService = require("../services/tableService");
 // ========================================
 // GET SEMUA TABEL
 // ========================================
@@ -321,8 +321,125 @@ exports.getData = async (
             totalPages,
         },
     };
+};
+
+
+// ========================================
+// INSERT DATA
+// ========================================
 
 exports.insertData = async (table, data) => {
+
+    // Cek apakah tabel ada
+    const tableResult = await db.query(
+        `
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = $1
+        `,
+        [table]
+    );
+
+    if (tableResult.rows.length === 0) {
+        throw new Error(
+            `Tabel "${table}" tidak ditemukan`
+        );
+    }
+
+
+    // Ambil struktur kolom tabel
+    const columnResult = await db.query(
+        `
+        SELECT
+            column_name,
+            column_default
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = $1
+        ORDER BY ordinal_position
+        `,
+        [table]
+    );
+
+
+    // Kolom yang boleh diisi user
+    // Kolom dengan nextval() biasanya auto increment
+    const allowedColumns = columnResult.rows
+        .filter((column) => {
+            return !(
+                column.column_default &&
+                column.column_default.includes("nextval")
+            );
+        })
+        .map((column) => column.column_name);
+
+
+    // Ambil hanya field yang memang ada di database
+    const inputColumns = Object.keys(data).filter(
+        (column) =>
+            allowedColumns.includes(column)
+    );
+
+
+    if (inputColumns.length === 0) {
+        throw new Error(
+            "Tidak ada data yang dapat dimasukkan"
+        );
+    }
+
+
+    // Values
+    const values = inputColumns.map(
+        (column) => data[column]
+    );
+
+
+    // Placeholder PostgreSQL
+    const placeholders = inputColumns.map(
+        (_, index) => `$${index + 1}`
+    );
+
+
+    // Escape nama tabel/kolom
+    const quoteIdentifier = (identifier) => {
+        return `"${identifier.replace(/"/g, '""')}"`;
+    };
+
+
+    const quotedTable =
+        quoteIdentifier(table);
+
+    const quotedColumns =
+        inputColumns
+            .map(quoteIdentifier)
+            .join(", ");
+
+
+    // Query INSERT
+    const query = `
+        INSERT INTO ${quotedTable}
+        (${quotedColumns})
+        VALUES (${placeholders.join(", ")})
+        RETURNING *
+    `;
+
+
+    // Jalankan query
+    const result = await db.query(
+        query,
+        values
+    );
+
+
+    return result.rows[0];
+};
+
+// ========================================
+// UPDATE DATA
+// ========================================
+
+exports.updateData = async (table, id, data) => {
 
     // ========================================
     // CEK TABEL
@@ -346,14 +463,37 @@ exports.insertData = async (table, data) => {
 
 
     // ========================================
+    // AMBIL PRIMARY KEY
+    // ========================================
+
+    const primaryKeyResult = await db.query(
+        `
+        SELECT column_name
+        FROM information_schema.key_column_usage
+        WHERE table_schema = 'public'
+          AND table_name = $1
+        ORDER BY ordinal_position
+        `,
+        [table]
+    );
+
+    if (primaryKeyResult.rows.length === 0) {
+        throw new Error(
+            `Tabel "${table}" tidak memiliki primary key`
+        );
+    }
+
+    const primaryKey =
+        primaryKeyResult.rows[0].column_name;
+
+
+    // ========================================
     // AMBIL KOLOM TABEL
     // ========================================
 
     const columnResult = await db.query(
         `
-        SELECT
-            column_name,
-            column_default
+        SELECT column_name
         FROM information_schema.columns
         WHERE table_schema = 'public'
           AND table_name = $1
@@ -362,71 +502,69 @@ exports.insertData = async (table, data) => {
         [table]
     );
 
-
-    // ========================================
-    // KOLOM YANG BOLEH DIISI
-    // ========================================
-
-    const allowedColumns = columnResult.rows
-        .filter((column) => {
-            return !(
-                column.column_default &&
-                column.column_default.includes(
-                    "nextval"
-                )
+    const allowedColumns =
+        columnResult.rows
+            .map((row) => row.column_name)
+            .filter(
+                (column) =>
+                    column !== primaryKey
             );
-        })
-        .map((column) => column.column_name);
 
 
     // ========================================
-    // FILTER DATA USER
+    // FILTER DATA
     // ========================================
 
-    const inputColumns = Object.keys(data).filter(
-        (column) =>
-            allowedColumns.includes(column)
-    );
+    const updateColumns =
+        Object.keys(data).filter(
+            (column) =>
+                allowedColumns.includes(column)
+        );
 
 
-    if (inputColumns.length === 0) {
+    if (updateColumns.length === 0) {
         throw new Error(
-            "Tidak ada data yang dapat dimasukkan"
+            "Tidak ada kolom yang dapat diperbarui"
         );
     }
 
 
     // ========================================
-    // BUAT QUERY
+    // BUAT SET
     // ========================================
 
-    const values = inputColumns.map(
+    const values = updateColumns.map(
         (column) => data[column]
     );
 
-    const placeholders = inputColumns.map(
-        (_, index) => `$${index + 1}`
-    );
-
-
-    const quoteIdentifier = (identifier) => {
-        return `"${identifier.replace(/"/g, '""')}"`;
-    };
-
-
-    const quotedTable =
-        quoteIdentifier(table);
-
-    const quotedColumns =
-        inputColumns
-            .map(quoteIdentifier)
+    const setClause =
+        updateColumns
+            .map(
+                (column, index) =>
+                    `"${column.replace(/"/g, '""')}" = $${index + 1}`
+            )
             .join(", ");
 
 
+    // ========================================
+    // ESCAPE TABLE & PRIMARY KEY
+    // ========================================
+
+    const quotedTable =
+        `"${table.replace(/"/g, '""')}"`;
+
+    const quotedPrimaryKey =
+        `"${primaryKey.replace(/"/g, '""')}"`;
+
+
+    // ========================================
+    // QUERY UPDATE
+    // ========================================
+
     const query = `
-        INSERT INTO ${quotedTable}
-        (${quotedColumns})
-        VALUES (${placeholders.join(", ")})
+        UPDATE ${quotedTable}
+        SET ${setClause}
+        WHERE ${quotedPrimaryKey} = $${values.length + 1}
         RETURNING *
     `;
 
@@ -437,10 +575,116 @@ exports.insertData = async (table, data) => {
 
     const result = await db.query(
         query,
-        values
+        [
+            ...values,
+            id
+        ]
     );
+
+
+    // ========================================
+    // CEK DATA
+    // ========================================
+
+    if (result.rows.length === 0) {
+        throw new Error(
+            `Data dengan ${primaryKey} = ${id} tidak ditemukan`
+        );
+    }
 
 
     return result.rows[0];
 };
+// ========================================
+// DELETE DATA
+// ========================================
+
+exports.deleteData = async (table, id) => {
+
+    // ========================================
+    // CEK TABEL
+    // ========================================
+
+    const tableResult = await db.query(
+        `
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = $1
+        `,
+        [table]
+    );
+
+    if (tableResult.rows.length === 0) {
+        throw new Error(
+            `Tabel "${table}" tidak ditemukan`
+        );
+    }
+
+
+    // ========================================
+    // AMBIL PRIMARY KEY
+    // ========================================
+
+    const primaryKeyResult = await db.query(
+        `
+        SELECT column_name
+        FROM information_schema.key_column_usage
+        WHERE table_schema = 'public'
+          AND table_name = $1
+        ORDER BY ordinal_position
+        `,
+        [table]
+    );
+
+    if (primaryKeyResult.rows.length === 0) {
+        throw new Error(
+            `Tabel "${table}" tidak memiliki primary key`
+        );
+    }
+
+    const primaryKey =
+        primaryKeyResult.rows[0].column_name;
+
+
+    // ========================================
+    // ESCAPE IDENTIFIER
+    // ========================================
+
+    const quotedTable =
+        `"${table.replace(/"/g, '""')}"`;
+
+    const quotedPrimaryKey =
+        `"${primaryKey.replace(/"/g, '""')}"`;
+
+
+    // ========================================
+    // DELETE
+    // ========================================
+
+    const query = `
+        DELETE FROM ${quotedTable}
+        WHERE ${quotedPrimaryKey} = $1
+        RETURNING *
+    `;
+
+
+    const result = await db.query(
+        query,
+        [id]
+    );
+
+
+    // ========================================
+    // DATA TIDAK DITEMUKAN
+    // ========================================
+
+    if (result.rows.length === 0) {
+        throw new Error(
+            `Data dengan ${primaryKey} = ${id} tidak ditemukan`
+        );
+    }
+
+
+    return result.rows[0];
 };
