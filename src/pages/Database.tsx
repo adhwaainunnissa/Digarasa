@@ -1,20 +1,28 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 
-// ========================================
-// INTERFACE
-// ========================================
-
 interface Table {
     table_name: string;
 }
 
-interface Column {
+interface TableData {
+    [key: string]: any;
+}
+
+interface ColumnInfo {
     column_name: string;
     data_type: string;
-    is_nullable?: string;
-    column_default?: string | null;
-    is_primary_key?: boolean;
+    is_nullable: string;
+    column_default: string | null;
+    is_primary_key: boolean;
+}
+
+interface TableInfo {
+    table: {
+        table_name: string;
+        table_type: string;
+    };
+    columns: ColumnInfo[];
 }
 
 interface Pagination {
@@ -24,117 +32,55 @@ interface Pagination {
     totalPages: number;
 }
 
-// ========================================
-// COMPONENT
-// ========================================
-
 function Database() {
 
     // ========================================
-    // STATE TABLE
+    // STATE
     // ========================================
 
     const [tables, setTables] = useState<Table[]>([]);
+
     const [selectedTable, setSelectedTable] =
-        useState<string | null>(null);
-
-    // ========================================
-    // STATE COLUMN & DATA
-    // ========================================
-
-    const [columns, setColumns] =
-        useState<Column[]>([]);
+        useState("");
 
     const [data, setData] =
-        useState<any[]>([]);
+        useState<TableData[]>([]);
 
-    // ========================================
-    // STATE LOADING
-    // ========================================
+    const [pagination, setPagination] =
+        useState<Pagination | null>(null);
 
-    const [loadingTables, setLoadingTables] =
-        useState(true);
+    const [tableInfo, setTableInfo] =
+        useState<TableInfo | null>(null);
 
-    const [loadingData, setLoadingData] =
+    const [loading, setLoading] =
         useState(false);
-
-    // ========================================
-    // PAGINATION
-    // ========================================
-
-    const [page, setPage] =
-        useState(1);
-
-    const [limit] =
-        useState(20);
-
-    const [total, setTotal] =
-        useState(0);
-
-    const [totalPages, setTotalPages] =
-        useState(0);
-
-    // ========================================
-    // SEARCH
-    // ========================================
 
     const [search, setSearch] =
         useState("");
 
-    // ========================================
-    // PRIMARY KEY
-    // ========================================
-
-    const [primaryKey, setPrimaryKey] =
-        useState<string | null>(null);
-
-    // ========================================
-    // MODAL
-    // ========================================
-
-    const [showModal, setShowModal] =
+    const [showForm, setShowForm] =
         useState(false);
 
-    const [modalMode, setModalMode] =
-        useState<"add" | "edit">("add");
-
-    // ========================================
-    // FORM DATA
-    // ========================================
+    const [editingRow, setEditingRow] =
+        useState<TableData | null>(null);
 
     const [formData, setFormData] =
-        useState<Record<string, any>>({});
+        useState<TableData>({});
 
-    // ========================================
-    // SELECTED ROW
-    // ========================================
-
-    const [selectedRow, setSelectedRow] =
-        useState<any | null>(null);
+    const [saving, setSaving] =
+        useState(false);
 
 
     // ========================================
-    // AMBIL SEMUA TABEL
+    // GET SEMUA TABEL
     // ========================================
-
-    useEffect(() => {
-        getTables();
-    }, []);
-
 
     const getTables = async () => {
 
         try {
 
-            setLoadingTables(true);
-
             const response =
                 await api.get("/tables");
-
-            console.log(
-                "Daftar tabel:",
-                response.data
-            );
 
             setTables(response.data);
 
@@ -145,101 +91,29 @@ function Database() {
                 error
             );
 
-        } finally {
-
-            setLoadingTables(false);
-
+            alert(
+                "Gagal mengambil daftar tabel."
+            );
         }
-
     };
 
 
     // ========================================
-    // AMBIL INFO TABEL
+    // GET TABLE INFO
     // ========================================
 
     const getTableInfo = async (
-        tableName: string
-    ) => {
-
-        const response =
-            await api.get(
-                `/tables/${encodeURIComponent(
-                    tableName
-                )}/info`
-            );
-
-        return response.data;
-
-    };
-
-
-    // ========================================
-    // PILIH TABEL
-    // ========================================
-
-    const selectTable = async (
-        tableName: string
+        table: string
     ) => {
 
         try {
 
-            setSelectedTable(tableName);
-
-            setLoadingData(true);
-
-            // Reset
-            setPage(1);
-            setSearch("");
-            setData([]);
-            setColumns([]);
-            setPrimaryKey(null);
-
-            // ========================================
-            // AMBIL INFO TABEL
-            // ========================================
-
-            const info =
-                await getTableInfo(tableName);
-
-            console.log(
-                "Info tabel:",
-                info
-            );
-
-            const tableColumns =
-                info.columns || [];
-
-            setColumns(tableColumns);
-
-            // Cari primary key
-            const pk =
-                tableColumns.find(
-                    (column: Column) =>
-                        column.is_primary_key === true
+            const response =
+                await api.get(
+                    `/tables/${encodeURIComponent(table)}/info`
                 );
 
-            if (pk) {
-
-                setPrimaryKey(
-                    pk.column_name
-                );
-
-            } else {
-
-                setPrimaryKey(null);
-
-            }
-
-            // ========================================
-            // AMBIL DATA
-            // ========================================
-
-            await fetchData(
-                tableName,
-                1,
-                ""
-            );
+            setTableInfo(response.data);
 
         } catch (error) {
 
@@ -248,65 +122,49 @@ function Database() {
                 error
             );
 
-            setColumns([]);
-            setData([]);
-            setPrimaryKey(null);
+            setTableInfo(null);
 
-        } finally {
-
-            setLoadingData(false);
-
+            alert(
+                "Gagal mengambil informasi tabel."
+            );
         }
-
     };
 
 
     // ========================================
-    // AMBIL DATA
+    // GET DATA TABEL
     // ========================================
 
-    const fetchData = async (
-        tableName: string,
-        pageNumber: number,
-        searchValue: string
+    const getTableData = async (
+        table: string,
+        page = 1,
+        searchValue = search
     ) => {
+
+        if (!table) return;
 
         try {
 
-            setLoadingData(true);
+            setLoading(true);
 
             const response =
                 await api.get(
-                    `/tables/${encodeURIComponent(
-                        tableName
-                    )}?page=${pageNumber}&limit=${limit}&search=${encodeURIComponent(
-                        searchValue
-                    )}`
+                    `/tables/${encodeURIComponent(table)}`,
+                    {
+                        params: {
+                            page,
+                            limit: 20,
+                            search: searchValue,
+                        },
+                    }
                 );
-
-            console.log(
-                "Data tabel:",
-                response.data
-            );
 
             setData(
                 response.data.data || []
             );
 
-            const pagination:
-                Pagination =
-                response.data.pagination;
-
-            setPage(
-                pagination.page
-            );
-
-            setTotal(
-                pagination.total
-            );
-
-            setTotalPages(
-                pagination.totalPages
+            setPagination(
+                response.data.pagination || null
             );
 
         } catch (error) {
@@ -316,40 +174,61 @@ function Database() {
                 error
             );
 
+            setData([]);
+            setPagination(null);
+
         } finally {
 
-            setLoadingData(false);
+            setLoading(false);
 
         }
-
     };
 
 
     // ========================================
-    // GANTI HALAMAN
+    // LOAD TABLES
     // ========================================
 
-    const changePage = async (
-        newPage: number
+    useEffect(() => {
+
+        getTables();
+
+    }, []);
+
+
+    // ========================================
+    // PILIH TABEL
+    // ========================================
+
+    const handleSelectTable = async (
+        table: string
     ) => {
 
-        if (!selectedTable) {
-            return;
-        }
+        setSelectedTable(table);
 
-        if (
-            newPage < 1 ||
-            newPage > totalPages
-        ) {
-            return;
-        }
+        setSearch("");
 
-        await fetchData(
-            selectedTable,
-            newPage,
-            search
+        setData([]);
+
+        setPagination(null);
+
+        setTableInfo(null);
+
+        setShowForm(false);
+
+        setEditingRow(null);
+
+        setFormData({});
+
+        if (!table) return;
+
+        await getTableInfo(table);
+
+        await getTableData(
+            table,
+            1,
+            ""
         );
-
     };
 
 
@@ -357,142 +236,105 @@ function Database() {
     // SEARCH
     // ========================================
 
-    const handleSearch = async () => {
+    const handleSearch = () => {
 
-        if (!selectedTable) {
-            return;
-        }
+        if (!selectedTable) return;
 
-        await fetchData(
+        getTableData(
             selectedTable,
             1,
             search
         );
-
     };
 
 
     // ========================================
-    // RESET SEARCH
+    // ENTER UNTUK SEARCH
     // ========================================
 
-    const handleResetSearch = async () => {
-
-        if (!selectedTable) {
-            return;
-        }
-
-        setSearch("");
-
-        await fetchData(
-            selectedTable,
-            1,
-            ""
-        );
-
-    };
-
-
-    // ========================================
-    // BUKA MODAL TAMBAH
-    // ========================================
-
-    const openAddModal = () => {
-
-        if (!selectedTable) {
-            return;
-        }
-
-        const initialData:
-            Record<string, any> = {};
-
-        columns.forEach(
-            (column) => {
-
-                // Jika primary key memiliki
-                // default/sequence, tidak perlu
-                // diisi user
-                if (
-                    column.is_primary_key &&
-                    column.column_default
-                ) {
-                    return;
-                }
-
-                initialData[
-                    column.column_name
-                ] = "";
-
-            }
-        );
-
-        setFormData(
-            initialData
-        );
-
-        setSelectedRow(null);
-
-        setModalMode("add");
-
-        setShowModal(true);
-
-    };
-
-
-    // ========================================
-    // BUKA MODAL EDIT
-    // ========================================
-
-    const openEditModal = (
-        row: any
+    const handleSearchKeyDown = (
+        e: React.KeyboardEvent<HTMLInputElement>
     ) => {
 
-        setSelectedRow(row);
-
-        const editData:
-            Record<string, any> = {};
-
-        columns.forEach(
-            (column) => {
-
-                editData[
-                    column.column_name
-                ] =
-                    row[
-                        column.column_name
-                    ] ?? "";
-
-            }
-        );
-
-        setFormData(
-            editData
-        );
-
-        setModalMode("edit");
-
-        setShowModal(true);
-
+        if (e.key === "Enter") {
+            handleSearch();
+        }
     };
 
 
     // ========================================
-    // HANDLE FORM
+    // GET PRIMARY KEY
     // ========================================
 
-    const handleInputChange = (
-        columnName: string,
+    const getPrimaryKey = () => {
+
+        if (!tableInfo) {
+            return null;
+        }
+
+        const primaryKey =
+            tableInfo.columns.find(
+                (column) =>
+                    column.is_primary_key === true
+            );
+
+        return primaryKey?.column_name || null;
+    };
+
+
+    // ========================================
+    // BUKA FORM TAMBAH
+    // ========================================
+
+    const handleAdd = () => {
+
+        if (!tableInfo) {
+            alert(
+                "Informasi tabel belum tersedia."
+            );
+
+            return;
+        }
+
+        setEditingRow(null);
+
+        setFormData({});
+
+        setShowForm(true);
+    };
+
+
+    // ========================================
+    // BUKA FORM EDIT
+    // ========================================
+
+    const handleEdit = (
+        row: TableData
+    ) => {
+
+        setEditingRow(row);
+
+        setFormData({
+            ...row,
+        });
+
+        setShowForm(true);
+    };
+
+
+    // ========================================
+    // HANDLE INPUT FORM
+    // ========================================
+
+    const handleFormChange = (
+        column: string,
         value: string
     ) => {
 
-        setFormData(
-            (previous) => ({
-                ...previous,
-                [columnName]:
-                    value,
-            })
-        );
-
+        setFormData((prev) => ({
+            ...prev,
+            [column]: value,
+        }));
     };
 
 
@@ -501,49 +343,39 @@ function Database() {
     // ========================================
 
     const handleSubmit = async (
-        event: React.FormEvent
+        e: React.FormEvent
     ) => {
 
-        event.preventDefault();
+        e.preventDefault();
 
         if (!selectedTable) {
+            alert(
+                "Silakan pilih tabel terlebih dahulu."
+            );
+
+            return;
+        }
+
+        if (!tableInfo) {
+            alert(
+                "Informasi tabel belum tersedia."
+            );
+
             return;
         }
 
         try {
 
-            // ========================================
-            // TAMBAH DATA
-            // ========================================
+            setSaving(true);
 
-            if (
-                modalMode === "add"
-            ) {
+            // ====================================
+            // UPDATE
+            // ====================================
 
-                const response =
-                    await api.post(
-                        `/tables/${encodeURIComponent(
-                            selectedTable
-                        )}`,
-                        formData
-                    );
+            if (editingRow) {
 
-                console.log(
-                    "Insert berhasil:",
-                    response.data
-                );
-
-                alert(
-                    "Data berhasil ditambahkan"
-                );
-
-            }
-
-            // ========================================
-            // EDIT DATA
-            // ========================================
-
-            else {
+                const primaryKey =
+                    getPrimaryKey();
 
                 if (!primaryKey) {
 
@@ -552,51 +384,55 @@ function Database() {
                     );
 
                     return;
-
                 }
 
                 const id =
-                    selectedRow[
-                        primaryKey
-                    ];
+                    editingRow[primaryKey];
 
-                const updateData = {
-                    ...formData,
-                };
-
-                // Primary key jangan diubah
-                delete updateData[
-                    primaryKey
-                ];
-
-                const response =
-                    await api.put(
-                        `/tables/${encodeURIComponent(
-                            selectedTable
-                        )}/${encodeURIComponent(
-                            id
-                        )}`,
-                        updateData
-                    );
-
-                console.log(
-                    "Update berhasil:",
-                    response.data
+                await api.put(
+                    `/tables/${encodeURIComponent(
+                        selectedTable
+                    )}/${encodeURIComponent(id)}`,
+                    formData
                 );
 
                 alert(
-                    "Data berhasil diperbarui"
+                    "Data berhasil diperbarui."
                 );
 
             }
 
-            // Tutup modal
-            setShowModal(false);
+            // ====================================
+            // INSERT
+            // ====================================
 
-            // Refresh data
-            await fetchData(
+            else {
+
+                await api.post(
+                    `/tables/${encodeURIComponent(
+                        selectedTable
+                    )}`,
+                    formData
+                );
+
+                alert(
+                    "Data berhasil ditambahkan."
+                );
+            }
+
+            // ====================================
+            // RESET
+            // ====================================
+
+            setShowForm(false);
+
+            setEditingRow(null);
+
+            setFormData({});
+
+            await getTableData(
                 selectedTable,
-                page,
+                pagination?.page || 1,
                 search
             );
 
@@ -609,12 +445,15 @@ function Database() {
 
             const message =
                 error?.response?.data?.error ||
-                "Gagal menyimpan data";
+                "Gagal menyimpan data.";
 
             alert(message);
 
-        }
+        } finally {
 
+            setSaving(false);
+
+        }
     };
 
 
@@ -623,55 +462,62 @@ function Database() {
     // ========================================
 
     const handleDelete = async (
-        row: any
+        row: TableData
     ) => {
 
-        if (!selectedTable) {
-            return;
-        }
+        if (!selectedTable) return;
+
+        const primaryKey =
+            getPrimaryKey();
 
         if (!primaryKey) {
 
             alert(
-                "Tabel ini tidak memiliki primary key sehingga data tidak dapat dihapus."
+                "Tabel ini tidak memiliki primary key."
             );
 
             return;
-
         }
 
         const id =
-            row[
-                primaryKey
-            ];
+            row[primaryKey];
 
-        const confirmation =
+        if (
+            id === undefined ||
+            id === null
+        ) {
+
+            alert(
+                "Primary key data tidak ditemukan."
+            );
+
+            return;
+        }
+
+        const confirmed =
             window.confirm(
                 `Yakin ingin menghapus data dengan ${primaryKey} = ${id}?`
             );
 
-        if (!confirmation) {
-            return;
-        }
+        if (!confirmed) return;
 
         try {
+
+            setLoading(true);
 
             await api.delete(
                 `/tables/${encodeURIComponent(
                     selectedTable
-                )}/${encodeURIComponent(
-                    id
-                )}`
+                )}/${encodeURIComponent(id)}`
             );
 
             alert(
-                "Data berhasil dihapus"
+                "Data berhasil dihapus."
             );
 
-            // Refresh
-            await fetchData(
+            await getTableData(
                 selectedTable,
-                page,
+                pagination?.page || 1,
                 search
             );
 
@@ -684,88 +530,29 @@ function Database() {
 
             const message =
                 error?.response?.data?.error ||
-                "Gagal menghapus data";
+                "Gagal menghapus data.";
 
             alert(message);
 
-        }
+        } finally {
 
+            setLoading(false);
+
+        }
     };
 
 
     // ========================================
-    // NOMOR HALAMAN
+    // TUTUP FORM
     // ========================================
 
-    const getPageNumbers = () => {
+    const handleCancelForm = () => {
 
-        const pages: number[] = [];
+        setShowForm(false);
 
-        const maxPagesToShow = 7;
+        setEditingRow(null);
 
-        if (
-            totalPages <=
-            maxPagesToShow
-        ) {
-
-            for (
-                let i = 1;
-                i <= totalPages;
-                i++
-            ) {
-
-                pages.push(i);
-
-            }
-
-        } else {
-
-            let start =
-                Math.max(
-                    1,
-                    page - 3
-                );
-
-            let end =
-                Math.min(
-                    totalPages,
-                    page + 3
-                );
-
-            if (page <= 3) {
-
-                start = 1;
-                end = 7;
-
-            }
-
-            if (
-                page >=
-                totalPages - 2
-            ) {
-
-                start =
-                    totalPages - 6;
-
-                end =
-                    totalPages;
-
-            }
-
-            for (
-                let i = start;
-                i <= end;
-                i++
-            ) {
-
-                pages.push(i);
-
-            }
-
-        }
-
-        return pages;
-
+        setFormData({});
     };
 
 
@@ -777,977 +564,219 @@ function Database() {
 
         <div
             style={{
-                display: "flex",
-                gap: "20px",
-                padding: "20px",
-                minHeight: "100vh",
-                boxSizing: "border-box",
+                padding: "24px",
             }}
         >
 
-            {/* ========================================
-                SIDEBAR TABEL
-            ======================================== */}
+            <h1>
+                Database
+            </h1>
+
+
+            {/* ================================== */}
+            {/* PILIH TABEL */}
+            {/* ================================== */}
 
             <div
                 style={{
-                    width: "260px",
-                    minWidth: "260px",
-                    border: "1px solid #ddd",
-                    borderRadius: "8px",
-                    padding: "15px",
-                    height: "fit-content",
-                    background: "#fff",
+                    marginBottom: "20px",
                 }}
             >
 
-                <h2>
+                <h3>
                     Daftar Tabel
-                </h2>
+                </h3>
 
-                {loadingTables ? (
+                <select
+                    value={selectedTable}
+                    onChange={(e) =>
+                        handleSelectTable(
+                            e.target.value
+                        )
+                    }
+                    style={{
+                        padding: "8px",
+                        minWidth: "250px",
+                    }}
+                >
 
-                    <p>
-                        Loading...
-                    </p>
+                    <option value="">
+                        -- Pilih Tabel --
+                    </option>
 
-                ) : tables.length === 0 ? (
+                    {tables.map(
+                        (table) => (
 
-                    <p>
-                        Tidak ada tabel.
-                    </p>
+                            <option
+                                key={
+                                    table.table_name
+                                }
+                                value={
+                                    table.table_name
+                                }
+                            >
+                                {
+                                    table.table_name
+                                }
+                            </option>
 
-                ) : (
+                        )
+                    )}
 
-                    <div>
-
-                        {tables.map(
-                            (table) => (
-
-                                <button
-                                    key={
-                                        table.table_name
-                                    }
-                                    onClick={() =>
-                                        selectTable(
-                                            table.table_name
-                                        )
-                                    }
-                                    style={{
-                                        display:
-                                            "block",
-                                        width:
-                                            "100%",
-                                        textAlign:
-                                            "left",
-                                        padding:
-                                            "10px",
-                                        marginBottom:
-                                            "5px",
-                                        cursor:
-                                            "pointer",
-                                        border:
-                                            "none",
-                                        borderRadius:
-                                            "5px",
-                                        background:
-                                            selectedTable ===
-                                            table.table_name
-                                                ? "#dbeafe"
-                                                : "#f5f5f5",
-                                        color:
-                                            selectedTable ===
-                                            table.table_name
-                                                ? "#1d4ed8"
-                                                : "#333",
-                                        fontWeight:
-                                            selectedTable ===
-                                            table.table_name
-                                                ? "bold"
-                                                : "normal",
-                                    }}
-                                >
-
-                                    {
-                                        table.table_name
-                                    }
-
-                                </button>
-
-                            )
-                        )}
-
-                    </div>
-
-                )}
+                </select>
 
             </div>
 
 
-            {/* ========================================
-                CONTENT
-            ======================================== */}
+            {/* ================================== */}
+            {/* INFO TABEL */}
+            {/* ================================== */}
 
-            <div
-                style={{
-                    flex: 1,
-                    minWidth: 0,
-                    overflowX: "auto",
-                }}
-            >
+            {selectedTable &&
+                tableInfo && (
 
-                {!selectedTable ? (
+                    <div
+                        style={{
+                            marginBottom:
+                                "20px",
+                            padding: "15px",
+                            border:
+                                "1px solid #ddd",
+                            borderRadius:
+                                "8px",
+                        }}
+                    >
 
-                    <div>
-
-                        <h1>
-                            Database
-                        </h1>
+                        <h3>
+                            Informasi Tabel
+                        </h3>
 
                         <p>
-                            Pilih tabel di sebelah kiri
-                            untuk melihat dan mengelola
-                            data.
+                            <strong>
+                                Nama:
+                            </strong>{" "}
+                            {
+                                tableInfo.table
+                                    .table_name
+                            }
+                        </p>
+
+                        <p>
+                            <strong>
+                                Tipe:
+                            </strong>{" "}
+                            {
+                                tableInfo.table
+                                    .table_type
+                            }
+                        </p>
+
+                        <p>
+                            <strong>
+                                Jumlah Kolom:
+                            </strong>{" "}
+                            {
+                                tableInfo
+                                    .columns
+                                    .length
+                            }
+                        </p>
+
+                        <p>
+                            <strong>
+                                Primary Key:
+                            </strong>{" "}
+
+                            {getPrimaryKey() ||
+                                "Tidak ada"}
                         </p>
 
                     </div>
 
-                ) : (
-
-                    <>
-
-                        {/* ========================================
-                            HEADER
-                        ======================================== */}
-
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent:
-                                    "space-between",
-                                alignItems:
-                                    "center",
-                                marginBottom:
-                                    "20px",
-                            }}
-                        >
-
-                            <div>
-
-                                <h1
-                                    style={{
-                                        margin:
-                                            "0 0 5px 0",
-                                    }}
-                                >
-                                    {
-                                        selectedTable
-                                    }
-                                </h1>
-
-                                <p
-                                    style={{
-                                        margin:
-                                            "0",
-                                        color:
-                                            "#666",
-                                    }}
-                                >
-                                    Total data:{" "}
-                                    {total}
-                                </p>
-
-                            </div>
-
-
-                            {/* BUTTON TAMBAH */}
-
-                            <button
-                                onClick={
-                                    openAddModal
-                                }
-                                style={{
-                                    padding:
-                                        "10px 16px",
-                                    border:
-                                        "none",
-                                    borderRadius:
-                                        "6px",
-                                    background:
-                                        "#2563eb",
-                                    color:
-                                        "white",
-                                    cursor:
-                                        "pointer",
-                                    fontWeight:
-                                        "bold",
-                                }}
-                            >
-                                + Tambah Data
-                            </button>
-
-                        </div>
-
-
-                        {/* ========================================
-                            SEARCH
-                        ======================================== */}
-
-                        <div
-                            style={{
-                                display:
-                                    "flex",
-                                gap:
-                                    "10px",
-                                marginBottom:
-                                    "20px",
-                            }}
-                        >
-
-                            <input
-                                type="text"
-                                placeholder="Cari data..."
-                                value={
-                                    search
-                                }
-                                onChange={(
-                                    event
-                                ) =>
-                                    setSearch(
-                                        event.target
-                                            .value
-                                    )
-                                }
-                                onKeyDown={(
-                                    event
-                                ) => {
-
-                                    if (
-                                        event.key ===
-                                        "Enter"
-                                    ) {
-
-                                        handleSearch();
-
-                                    }
-
-                                }}
-                                style={{
-                                    padding:
-                                        "10px",
-                                    width:
-                                        "300px",
-                                    border:
-                                        "1px solid #ccc",
-                                    borderRadius:
-                                        "6px",
-                                }}
-                            />
-
-
-                            <button
-                                onClick={
-                                    handleSearch
-                                }
-                                style={{
-                                    padding:
-                                        "10px 15px",
-                                    cursor:
-                                        "pointer",
-                                }}
-                            >
-                                Cari
-                            </button>
-
-
-                            <button
-                                onClick={
-                                    handleResetSearch
-                                }
-                                style={{
-                                    padding:
-                                        "10px 15px",
-                                    cursor:
-                                        "pointer",
-                                }}
-                            >
-                                Reset
-                            </button>
-
-                        </div>
-
-
-                        {/* ========================================
-                            LOADING
-                        ======================================== */}
-
-                        {loadingData ? (
-
-                            <p>
-                                Mengambil data...
-                            </p>
-
-                        ) : (
-
-                            <>
-
-                                {/* ========================================
-                                    STRUKTUR TABEL
-                                ======================================== */}
-
-                                <h3>
-                                    Struktur Tabel
-                                </h3>
-
-                                <div
-                                    style={{
-                                        overflowX:
-                                            "auto",
-                                        marginBottom:
-                                            "30px",
-                                    }}
-                                >
-
-                                    <table
-                                        style={{
-                                            borderCollapse:
-                                                "collapse",
-                                            width:
-                                                "100%",
-                                        }}
-                                    >
-
-                                        <thead>
-
-                                            <tr>
-
-                                                <th
-                                                    style={{
-                                                        border:
-                                                            "1px solid #ddd",
-                                                        padding:
-                                                            "10px",
-                                                        background:
-                                                            "#f3f4f6",
-                                                    }}
-                                                >
-                                                    Nama Kolom
-                                                </th>
-
-                                                <th
-                                                    style={{
-                                                        border:
-                                                            "1px solid #ddd",
-                                                        padding:
-                                                            "10px",
-                                                        background:
-                                                            "#f3f4f6",
-                                                    }}
-                                                >
-                                                    Tipe Data
-                                                </th>
-
-                                                <th
-                                                    style={{
-                                                        border:
-                                                            "1px solid #ddd",
-                                                        padding:
-                                                            "10px",
-                                                        background:
-                                                            "#f3f4f6",
-                                                    }}
-                                                >
-                                                    Primary Key
-                                                </th>
-
-                                                <th
-                                                    style={{
-                                                        border:
-                                                            "1px solid #ddd",
-                                                        padding:
-                                                            "10px",
-                                                        background:
-                                                            "#f3f4f6",
-                                                    }}
-                                                >
-                                                    Nullable
-                                                </th>
-
-                                            </tr>
-
-                                        </thead>
-
-
-                                        <tbody>
-
-                                            {columns.map(
-                                                (
-                                                    column
-                                                ) => (
-
-                                                    <tr
-                                                        key={
-                                                            column.column_name
-                                                        }
-                                                    >
-
-                                                        <td
-                                                            style={{
-                                                                border:
-                                                                    "1px solid #ddd",
-                                                                padding:
-                                                                    "10px",
-                                                            }}
-                                                        >
-                                                            {
-                                                                column.column_name
-                                                            }
-                                                        </td>
-
-                                                        <td
-                                                            style={{
-                                                                border:
-                                                                    "1px solid #ddd",
-                                                                padding:
-                                                                    "10px",
-                                                            }}
-                                                        >
-                                                            {
-                                                                column.data_type
-                                                            }
-                                                        </td>
-
-                                                        <td
-                                                            style={{
-                                                                border:
-                                                                    "1px solid #ddd",
-                                                                padding:
-                                                                    "10px",
-                                                                textAlign:
-                                                                    "center",
-                                                            }}
-                                                        >
-                                                            {column.is_primary_key
-                                                                ? "✓"
-                                                                : "-"}
-                                                        </td>
-
-                                                        <td
-                                                            style={{
-                                                                border:
-                                                                    "1px solid #ddd",
-                                                                padding:
-                                                                    "10px",
-                                                            }}
-                                                        >
-                                                            {
-                                                                column.is_nullable
-                                                            }
-                                                        </td>
-
-                                                    </tr>
-
-                                                )
-                                            )}
-
-                                        </tbody>
-
-                                    </table>
-
-                                </div>
-
-
-                                {/* ========================================
-                                    DATA
-                                ======================================== */}
-
-                                <div
-                                    style={{
-                                        display:
-                                            "flex",
-                                        justifyContent:
-                                            "space-between",
-                                        alignItems:
-                                            "center",
-                                        marginBottom:
-                                            "10px",
-                                    }}
-                                >
-
-                                    <h3>
-                                        Data
-                                    </h3>
-
-                                    <span
-                                        style={{
-                                            color:
-                                                "#666",
-                                        }}
-                                    >
-                                        Halaman{" "}
-                                        {page}{" "}
-                                        dari{" "}
-                                        {totalPages}
-                                    </span>
-
-                                </div>
-
-
-                                {data.length === 0 ? (
-
-                                    <p>
-                                        Tidak ada data.
-                                    </p>
-
-                                ) : (
-
-                                    <div
-                                        style={{
-                                            overflowX:
-                                                "auto",
-                                        }}
-                                    >
-
-                                        <table
-                                            style={{
-                                                borderCollapse:
-                                                    "collapse",
-                                                width:
-                                                    "100%",
-                                            }}
-                                        >
-
-                                            <thead>
-
-                                                <tr>
-
-                                                    {columns.map(
-                                                        (
-                                                            column
-                                                        ) => (
-
-                                                            <th
-                                                                key={
-                                                                    column.column_name
-                                                                }
-                                                                style={{
-                                                                    border:
-                                                                        "1px solid #ddd",
-                                                                    padding:
-                                                                        "10px",
-                                                                    background:
-                                                                        "#f3f4f6",
-                                                                    whiteSpace:
-                                                                        "nowrap",
-                                                                }}
-                                                            >
-                                                                {
-                                                                    column.column_name
-                                                                }
-                                                            </th>
-
-                                                        )
-                                                    )}
-
-                                                    <th
-                                                        style={{
-                                                            border:
-                                                                "1px solid #ddd",
-                                                            padding:
-                                                                "10px",
-                                                            background:
-                                                                "#f3f4f6",
-                                                        }}
-                                                    >
-                                                        Aksi
-                                                    </th>
-
-                                                </tr>
-
-                                            </thead>
-
-
-                                            <tbody>
-
-                                                {data.map(
-                                                    (
-                                                        row,
-                                                        index
-                                                    ) => (
-
-                                                        <tr
-                                                            key={
-                                                                index
-                                                            }
-                                                        >
-
-                                                            {columns.map(
-                                                                (
-                                                                    column
-                                                                ) => (
-
-                                                                    <td
-                                                                        key={
-                                                                            column.column_name
-                                                                        }
-                                                                        style={{
-                                                                            border:
-                                                                                "1px solid #ddd",
-                                                                            padding:
-                                                                                "10px",
-                                                                            whiteSpace:
-                                                                                "nowrap",
-                                                                        }}
-                                                                    >
-
-                                                                        {row[
-                                                                            column.column_name
-                                                                        ] !==
-                                                                        null &&
-                                                                        row[
-                                                                            column.column_name
-                                                                        ] !==
-                                                                        undefined
-                                                                            ? String(
-                                                                                  row[
-                                                                                      column.column_name
-                                                                                  ]
-                                                                              )
-                                                                            : "-"}
-
-                                                                    </td>
-
-                                                                )
-                                                            )}
-
-
-                                                            {/* AKSI */}
-
-                                                            <td
-                                                                style={{
-                                                                    border:
-                                                                        "1px solid #ddd",
-                                                                    padding:
-                                                                        "10px",
-                                                                    whiteSpace:
-                                                                        "nowrap",
-                                                                }}
-                                                            >
-
-                                                                <button
-                                                                    onClick={() =>
-                                                                        openEditModal(
-                                                                            row
-                                                                        )
-                                                                    }
-                                                                    style={{
-                                                                        marginRight:
-                                                                            "5px",
-                                                                        padding:
-                                                                            "7px 10px",
-                                                                        cursor:
-                                                                            "pointer",
-                                                                    }}
-                                                                >
-                                                                    Edit
-                                                                </button>
-
-
-                                                                <button
-                                                                    onClick={() =>
-                                                                        handleDelete(
-                                                                            row
-                                                                        )
-                                                                    }
-                                                                    style={{
-                                                                        padding:
-                                                                            "7px 10px",
-                                                                        cursor:
-                                                                            "pointer",
-                                                                    }}
-                                                                >
-                                                                    Hapus
-                                                                </button>
-
-                                                            </td>
-
-                                                        </tr>
-
-                                                    )
-                                                )}
-
-                                            </tbody>
-
-                                        </table>
-
-                                    </div>
-
-                                )}
-
-
-                                {/* ========================================
-                                    PAGINATION
-                                ======================================== */}
-
-                                {totalPages > 0 && (
-
-                                    <div
-                                        style={{
-                                            display:
-                                                "flex",
-                                            justifyContent:
-                                                "space-between",
-                                            alignItems:
-                                                "center",
-                                            marginTop:
-                                                "20px",
-                                            flexWrap:
-                                                "wrap",
-                                            gap:
-                                                "10px",
-                                        }}
-                                    >
-
-                                        <div>
-
-                                            Menampilkan{" "}
-                                            {data.length}{" "}
-                                            dari{" "}
-                                            {total}{" "}
-                                            data
-
-                                        </div>
-
-
-                                        <div
-                                            style={{
-                                                display:
-                                                    "flex",
-                                                gap:
-                                                    "5px",
-                                            }}
-                                        >
-
-                                            {/* SEBELUMNYA */}
-
-                                            <button
-                                                disabled={
-                                                    page ===
-                                                    1
-                                                }
-                                                onClick={() =>
-                                                    changePage(
-                                                        page -
-                                                            1
-                                                    )
-                                                }
-                                                style={{
-                                                    padding:
-                                                        "7px 10px",
-                                                    cursor:
-                                                        page ===
-                                                        1
-                                                            ? "not-allowed"
-                                                            : "pointer",
-                                                }}
-                                            >
-                                                ←
-                                            </button>
-
-
-                                            {/* NOMOR HALAMAN */}
-
-                                            {getPageNumbers().map(
-                                                (
-                                                    pageNumber
-                                                ) => (
-
-                                                    <button
-                                                        key={
-                                                            pageNumber
-                                                        }
-                                                        onClick={() =>
-                                                            changePage(
-                                                                pageNumber
-                                                            )
-                                                        }
-                                                        style={{
-                                                            padding:
-                                                                "7px 10px",
-                                                            cursor:
-                                                                "pointer",
-                                                            fontWeight:
-                                                                page ===
-                                                                pageNumber
-                                                                    ? "bold"
-                                                                    : "normal",
-                                                            background:
-                                                                page ===
-                                                                pageNumber
-                                                                    ? "#2563eb"
-                                                                    : "#fff",
-                                                            color:
-                                                                page ===
-                                                                pageNumber
-                                                                    ? "#fff"
-                                                                    : "#000",
-                                                            border:
-                                                                "1px solid #ccc",
-                                                            borderRadius:
-                                                                "4px",
-                                                        }}
-                                                    >
-                                                        {
-                                                            pageNumber
-                                                        }
-                                                    </button>
-
-                                                )
-                                            )}
-
-
-                                            {/* BERIKUTNYA */}
-
-                                            <button
-                                                disabled={
-                                                    page ===
-                                                    totalPages
-                                                }
-                                                onClick={() =>
-                                                    changePage(
-                                                        page +
-                                                            1
-                                                    )
-                                                }
-                                                style={{
-                                                    padding:
-                                                        "7px 10px",
-                                                    cursor:
-                                                        page ===
-                                                        totalPages
-                                                            ? "not-allowed"
-                                                            : "pointer",
-                                                }}
-                                            >
-                                                →
-                                            </button>
-
-                                        </div>
-
-                                    </div>
-
-                                )}
-
-                            </>
-
-                        )}
-
-                    </>
-
                 )}
 
-            </div>
 
+            {/* ================================== */}
+            {/* SEARCH + TAMBAH */}
+            {/* ================================== */}
 
-            {/* ========================================
-                MODAL TAMBAH / EDIT
-            ======================================== */}
-
-            {showModal && (
+            {selectedTable && (
 
                 <div
                     style={{
-                        position:
-                            "fixed",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background:
-                            "rgba(0,0,0,0.5)",
-                        display:
-                            "flex",
-                        justifyContent:
-                            "center",
+                        marginBottom:
+                            "20px",
+                        display: "flex",
+                        gap: "8px",
                         alignItems:
                             "center",
-                        zIndex: 999,
-                        padding:
-                            "20px",
                     }}
                 >
 
+                    <input
+                        type="text"
+                        placeholder="Cari data..."
+                        value={search}
+                        onChange={(e) =>
+                            setSearch(
+                                e.target.value
+                            )
+                        }
+                        onKeyDown={
+                            handleSearchKeyDown
+                        }
+                        style={{
+                            padding: "8px",
+                            width: "300px",
+                        }}
+                    />
+
+                    <button
+                        onClick={
+                            handleSearch
+                        }
+                    >
+                        Search
+                    </button>
+
+                    <button
+                        onClick={
+                            handleAdd
+                        }
+                    >
+                        + Tambah Data
+                    </button>
+
+                </div>
+
+            )}
+
+
+            {/* ================================== */}
+            {/* FORM TAMBAH / EDIT */}
+            {/* ================================== */}
+
+            {showForm &&
+                tableInfo && (
+
                     <div
                         style={{
-                            background:
-                                "#fff",
-                            borderRadius:
-                                "10px",
-                            width:
-                                "600px",
-                            maxWidth:
-                                "100%",
-                            maxHeight:
-                                "90vh",
-                            overflowY:
-                                "auto",
-                            padding:
+                            marginBottom:
                                 "25px",
+                            padding: "20px",
+                            border:
+                                "1px solid #ddd",
+                            borderRadius:
+                                "8px",
                         }}
                     >
 
-                        {/* HEADER MODAL */}
+                        <h2>
+                            {editingRow
+                                ? "Edit Data"
+                                : "Tambah Data"}
+                        </h2>
 
-                        <div
-                            style={{
-                                display:
-                                    "flex",
-                                justifyContent:
-                                    "space-between",
-                                alignItems:
-                                    "center",
-                                marginBottom:
-                                    "20px",
-                            }}
-                        >
-
-                            <h2
-                                style={{
-                                    margin:
-                                        "0",
-                                }}
-                            >
-                                {modalMode ===
-                                "add"
-                                    ? "Tambah Data"
-                                    : "Edit Data"}
-                            </h2>
-
-
-                            <button
-                                onClick={() =>
-                                    setShowModal(
-                                        false
-                                    )
-                                }
-                                style={{
-                                    border:
-                                        "none",
-                                    background:
-                                        "transparent",
-                                    fontSize:
-                                        "20px",
-                                    cursor:
-                                        "pointer",
-                                }}
-                            >
-                                ✕
-                            </button>
-
-                        </div>
-
-
-                        {/* FORM */}
 
                         <form
                             onSubmit={
@@ -1755,33 +784,29 @@ function Database() {
                             }
                         >
 
-                            {columns.map(
-                                (
-                                    column
-                                ) => {
-
-                                    // Saat tambah:
-                                    // skip primary key yang
-                                    // memiliki default sequence
-                                    if (
-                                        modalMode ===
-                                            "add" &&
-                                        column.is_primary_key &&
-                                        column.column_default
-                                    ) {
-
-                                        return null;
-
-                                    }
+                            {tableInfo.columns.map(
+                                (column) => {
 
                                     const isPrimaryKey =
-                                        column.is_primary_key ===
-                                        true;
+                                        column.is_primary_key;
 
-                                    const disabled =
-                                        modalMode ===
-                                            "edit" &&
-                                        isPrimaryKey;
+                                    const isAutoIncrement =
+                                        column.column_default
+                                            ?.includes(
+                                                "nextval"
+                                            );
+
+                                    /*
+                                     * Primary key auto increment
+                                     * tidak perlu diinput user
+                                     */
+
+                                    if (
+                                        !editingRow &&
+                                        isAutoIncrement
+                                    ) {
+                                        return null;
+                                    }
 
                                     return (
 
@@ -1791,7 +816,7 @@ function Database() {
                                             }
                                             style={{
                                                 marginBottom:
-                                                    "15px",
+                                                    "12px",
                                             }}
                                         >
 
@@ -1801,22 +826,33 @@ function Database() {
                                                         "block",
                                                     marginBottom:
                                                         "5px",
-                                                    fontWeight:
-                                                        "bold",
                                                 }}
                                             >
 
-                                                {
-                                                    column.column_name
-                                                }
+                                                <strong>
+                                                    {
+                                                        column.column_name
+                                                    }
+                                                </strong>
+
+                                                {" "}
+
+                                                <small>
+                                                    (
+                                                    {
+                                                        column.data_type
+                                                    }
+                                                    )
+                                                </small>
 
                                                 {column.is_nullable ===
-                                                    "NO" && (
-                                                    <span>
-                                                        {" "}
-                                                        *
-                                                    </span>
-                                                )}
+                                                    "NO" &&
+                                                    !isPrimaryKey && (
+                                                        <span>
+                                                            {" "}
+                                                            *
+                                                        </span>
+                                                    )}
 
                                             </label>
 
@@ -1825,55 +861,37 @@ function Database() {
                                                 type="text"
                                                 value={
                                                     formData[
-                                                        column.column_name
+                                                        column
+                                                            .column_name
                                                     ] ??
                                                     ""
                                                 }
                                                 disabled={
-                                                    disabled
+                                                    editingRow
+                                                        ? isPrimaryKey
+                                                        : false
                                                 }
                                                 onChange={(
-                                                    event
+                                                    e
                                                 ) =>
-                                                    handleInputChange(
+                                                    handleFormChange(
                                                         column.column_name,
-                                                        event
+                                                        e
                                                             .target
                                                             .value
                                                     )
                                                 }
-                                                placeholder={
-                                                    column.data_type
-                                                }
                                                 style={{
+                                                    padding:
+                                                        "8px",
                                                     width:
                                                         "100%",
+                                                    maxWidth:
+                                                        "500px",
                                                     boxSizing:
                                                         "border-box",
-                                                    padding:
-                                                        "10px",
-                                                    border:
-                                                        "1px solid #ccc",
-                                                    borderRadius:
-                                                        "6px",
-                                                    background:
-                                                        disabled
-                                                            ? "#f3f4f6"
-                                                            : "#fff",
                                                 }}
                                             />
-
-                                            {disabled && (
-                                                <small
-                                                    style={{
-                                                        color:
-                                                            "#666",
-                                                    }}
-                                                >
-                                                    Primary key tidak
-                                                    dapat diubah.
-                                                </small>
-                                            )}
 
                                         </div>
 
@@ -1883,60 +901,37 @@ function Database() {
                             )}
 
 
-                            {/* BUTTON FORM */}
-
                             <div
                                 style={{
-                                    display:
-                                        "flex",
-                                    justifyContent:
-                                        "flex-end",
-                                    gap:
-                                        "10px",
                                     marginTop:
                                         "20px",
                                 }}
                             >
 
                                 <button
+                                    type="submit"
+                                    disabled={
+                                        saving
+                                    }
+                                >
+                                    {saving
+                                        ? "Menyimpan..."
+                                        : editingRow
+                                        ? "Simpan Perubahan"
+                                        : "Tambah Data"}
+                                </button>
+
+                                <button
                                     type="button"
-                                    onClick={() =>
-                                        setShowModal(
-                                            false
-                                        )
+                                    onClick={
+                                        handleCancelForm
                                     }
                                     style={{
-                                        padding:
-                                            "10px 15px",
-                                        cursor:
-                                            "pointer",
+                                        marginLeft:
+                                            "8px",
                                     }}
                                 >
                                     Batal
-                                </button>
-
-
-                                <button
-                                    type="submit"
-                                    style={{
-                                        padding:
-                                            "10px 15px",
-                                        background:
-                                            "#2563eb",
-                                        color:
-                                            "#fff",
-                                        border:
-                                            "none",
-                                        borderRadius:
-                                            "6px",
-                                        cursor:
-                                            "pointer",
-                                    }}
-                                >
-                                    {modalMode ===
-                                    "add"
-                                        ? "Simpan"
-                                        : "Update"}
                                 </button>
 
                             </div>
@@ -1945,6 +940,246 @@ function Database() {
 
                     </div>
 
+                )}
+
+
+            {/* ================================== */}
+            {/* DATA */}
+            {/* ================================== */}
+
+            {loading ? (
+
+                <p>
+                    Loading...
+                </p>
+
+            ) : selectedTable &&
+                data.length > 0 ? (
+
+                <div
+                    style={{
+                        overflowX:
+                            "auto",
+                    }}
+                >
+
+                    <table
+                        border={1}
+                        cellPadding={8}
+                        style={{
+                            borderCollapse:
+                                "collapse",
+                            width:
+                                "100%",
+                        }}
+                    >
+
+                        <thead>
+
+                            <tr>
+
+                                {Object.keys(
+                                    data[0]
+                                ).map(
+                                    (column) => (
+
+                                        <th
+                                            key={
+                                                column
+                                            }
+                                        >
+                                            {
+                                                column
+                                            }
+                                        </th>
+
+                                    )
+                                )}
+
+                                <th>
+                                    Aksi
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            {data.map(
+                                (
+                                    row,
+                                    index
+                                ) => (
+
+                                    <tr
+                                        key={
+                                            index
+                                        }
+                                    >
+
+                                        {Object.keys(
+                                            data[0]
+                                        ).map(
+                                            (
+                                                column
+                                            ) => (
+
+                                                <td
+                                                    key={
+                                                        column
+                                                    }
+                                                >
+                                                    {
+                                                        row[
+                                                            column
+                                                        ] ??
+                                                        "-"
+                                                    }
+                                                </td>
+
+                                            )
+                                        )}
+
+
+                                        <td
+                                            style={{
+                                                whiteSpace:
+                                                    "nowrap",
+                                            }}
+                                        >
+
+                                            <button
+                                                onClick={() =>
+                                                    handleEdit(
+                                                        row
+                                                    )
+                                                }
+                                            >
+                                                Edit
+                                            </button>
+
+
+                                            <button
+                                                onClick={() =>
+                                                    handleDelete(
+                                                        row
+                                                    )
+                                                }
+                                                style={{
+                                                    marginLeft:
+                                                        "8px",
+                                                }}
+                                            >
+                                                Hapus
+                                            </button>
+
+                                        </td>
+
+                                    </tr>
+
+                                )
+                            )}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            ) : selectedTable ? (
+
+                <p>
+                    Tidak ada data.
+                </p>
+
+            ) : (
+
+                <p>
+                    Silakan pilih tabel.
+                </p>
+
+            )}
+
+
+            {/* ================================== */}
+            {/* PAGINATION */}
+            {/* ================================== */}
+
+            {pagination && (
+
+                <div
+                    style={{
+                        marginTop:
+                            "20px",
+                        display:
+                            "flex",
+                        alignItems:
+                            "center",
+                        gap: "15px",
+                    }}
+                >
+
+                    <button
+                        disabled={
+                            pagination.page <=
+                            1
+                        }
+                        onClick={() =>
+                            getTableData(
+                                selectedTable,
+                                pagination.page -
+                                    1,
+                                search
+                            )
+                        }
+                    >
+                        ← Previous
+                    </button>
+
+
+                    <span>
+
+                        Page{" "}
+                        {
+                            pagination.page
+                        }{" "}
+
+                        dari{" "}
+
+                        {
+                            pagination.totalPages
+                        }
+
+                    </span>
+
+
+                    <button
+                        disabled={
+                            pagination.page >=
+                            pagination.totalPages
+                        }
+                        onClick={() =>
+                            getTableData(
+                                selectedTable,
+                                pagination.page +
+                                    1,
+                                search
+                            )
+                        }
+                    >
+                        Next →
+                    </button>
+
+
+                    <span>
+                        Total:{" "}
+                        {
+                            pagination.total
+                        }
+                    </span>
+
                 </div>
 
             )}
@@ -1952,7 +1187,6 @@ function Database() {
         </div>
 
     );
-
 }
 
 export default Database;

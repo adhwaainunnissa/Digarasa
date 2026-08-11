@@ -1,5 +1,5 @@
 const db = require("../config/db");
-const tableService = require("../services/tableService");
+
 // ========================================
 // GET SEMUA TABEL
 // ========================================
@@ -57,7 +57,7 @@ exports.getTableInfo = async (table) => {
         SELECT
             t.table_name,
             t.table_type
-        FROM information_schema.tables
+        FROM information_schema.tables t
         WHERE table_schema = 'public'
           AND table_name = $1
         `,
