@@ -55,8 +55,8 @@ exports.getTableInfo = async (table) => {
     const tableResult = await db.query(
         `
         SELECT
-            table_name,
-            table_type
+            t.table_name,
+            t.table_type
         FROM information_schema.tables
         WHERE table_schema = 'public'
           AND table_name = $1

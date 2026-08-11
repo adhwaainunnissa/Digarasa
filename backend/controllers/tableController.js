@@ -46,16 +46,20 @@ exports.getSchema = async (req, res) => {
 
 exports.getTableInfo = async (req, res) => {
     try {
-        const info = await tableService.getTableInfo(
-            req.params.table
-        );
+        console.log("PARAMS:", req.params);
+        const table = req.params.table;
+
+        console.log("TABLE DARI URL:", table);
+
+        const info = await tableService.getTableInfo(table);
 
         res.json(info);
+
     } catch (err) {
         console.error(err);
 
         res.status(500).json({
-            error: err.message,
+            error: err.message
         });
     }
 };
