@@ -1,79 +1,98 @@
-import { useState } from "react";
+interface AuthFormProps {
+    username: string;
+    password: string;
 
-export default function AuthForm() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+    setUsername: (value: string) => void;
+    setPassword: (value: string) => void;
 
-  const handleLogin = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          Username: username,
-          Password: password,
-        }),
-      });
+    onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 
-      const data = await response.json();
+    loading?: boolean;
+    error?: string;
+}
 
-      if (response.ok) {
-        alert("Login berhasil!");
-      } else {
-        alert(data.message);
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Server tidak dapat dihubungi.");
-    }
-  };
+export default function AuthForm({
+    username,
+    password,
+    setUsername,
+    setPassword,
+    onSubmit,
+    loading = false,
+    error = "",
+}: AuthFormProps) {
+    return (
+        <div className="flex w-full flex-col items-center justify-center px-20">
 
-  return (
-    <div className="flex flex-col justify-center items-center px-20">
+            {/* Logo */}
+            <img
+                src="/src/assets/logo-pln.png"
+                alt="Logo PLN"
+                className="mb-5 w-14"
+            />
 
-      <img
-        src="/src/assets/logo-pln.png"
-        alt="Logo PLN"
-        className="w-14 mb-5"
-      />
+            {/* Title */}
+            <h2 className="text-3xl font-bold">
+                FASOP
+            </h2>
 
-      <h2 className="text-3xl font-bold">
-        FASOP
-      </h2>
+            <h3 className="mt-2 text-2xl font-semibold">
+                <span className="text-yellow-500">
+                    Monitoring
+                </span>{" "}
+                System
+            </h3>
 
-      <h3 className="text-2xl font-semibold mt-2">
-        <span className="text-yellow-500">Monitoring</span> System
-      </h3>
+            {/* Error */}
+            {error && (
+                <div className="mt-6 w-full rounded-lg bg-red-100 p-3 text-sm text-red-700">
+                    {error}
+                </div>
+            )}
 
-      <div className="w-full mt-10 space-y-5">
+            {/* Form */}
+            <form
+                onSubmit={onSubmit}
+                className="mt-10 w-full space-y-5"
+            >
 
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="w-full rounded-lg border p-3"
-        />
+                {/* Username */}
+                <input
+                    type="text"
+                    placeholder="Username"
+                    value={username}
+                    onChange={(e) =>
+                        setUsername(e.target.value)
+                    }
+                    className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-blue-500"
+                    autoComplete="username"
+                    required
+                />
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-lg border p-3"
-        />
+                {/* Password */}
+                <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) =>
+                        setPassword(e.target.value)
+                    }
+                    className="w-full rounded-lg border p-3 outline-none focus:ring-2 focus:ring-blue-500"
+                    autoComplete="current-password"
+                    required
+                />
 
-        <button
-          onClick={handleLogin}
-          className="w-full rounded-lg bg-blue-700 p-3 text-white hover:bg-blue-800"
-        >
-          Log in
-        </button>
+                {/* Login Button */}
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full rounded-lg bg-blue-700 p-3 text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {loading
+                        ? "Logging in..."
+                        : "Log in"}
+                </button>
 
-      </div>
-
-    </div>
-  );
+            </form>
+        </div>
+    );
 }

@@ -1,27 +1,36 @@
-const login = (req, res) => {
+const authService = require("../services/authService");
 
-    const { email, password } = req.body;
+exports.login = async (req, res) => {
+    try {
+        const { username, password } = req.body;
 
-    if(email === "admin@pln.co.id" && password === "123456"){
+        // Validasi input
+        if (!username || !password) {
+            return res.status(400).json({
+                message: "Username dan password wajib diisi",
+            });
+        }
 
-        return res.json({
-            success:true,
-            message:"Login Berhasil",
-            user:{
-                nama:"Admin PLN",
-                email
-            }
+        const result = await authService.login(
+            username,
+            password
+        );
+
+        res.status(200).json({
+            message: "Login berhasil",
+            ...result,
         });
 
+    } catch (err) {
+        console.error(err);
+
+        res.status(401).json({
+            message: err.message,
+        });
     }
-
-    return res.status(401).json({
-        success:false,
-        message:"Email atau Password Salah"
+};
+exports.me = async (req, res) => {
+    res.json({
+        user: req.user,
     });
-
-}
-
-module.exports = {
-    login
-}
+};

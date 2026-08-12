@@ -3,9 +3,17 @@ const express = require("express");
 const router = express.Router();
 
 const tableController = require("../controllers/tableController");
+const authenticateToken = require("../middleware/authMiddleware");
+const authorizeRole = require("../middleware/roleMiddleware");
 
 // ========================================
-// GET SEMUA TABEL
+// SEMUA ROUTE TABLE WAJIB LOGIN
+// ========================================
+
+router.use("/tables", authenticateToken);
+
+// ========================================
+// GET
 // ========================================
 
 router.get(
@@ -13,30 +21,15 @@ router.get(
     tableController.getTables
 );
 
-// ========================================
-// GET SCHEMA TABEL
-// GET /api/tables/DEVICE_PROSIS/schema
-// ========================================
-
 router.get(
     "/tables/:table/schema",
     tableController.getSchema
 );
 
-// ========================================
-// GET INFO TABEL
-// GET /api/tables/DEVICE_PROSIS/info
-// ========================================
-
 router.get(
     "/tables/:table/info",
     tableController.getTableInfo
 );
-
-// ========================================
-// GET DATA TABEL
-// GET /api/tables/DEVICE_PROSIS
-// ========================================
 
 router.get(
     "/tables/:table",
@@ -44,32 +37,32 @@ router.get(
 );
 
 // ========================================
-// INSERT DATA
-// POST /api/tables/DEVICE_PROSIS
+// POST
 // ========================================
 
 router.post(
     "/tables/:table",
+    authorizeRole("admin"),
     tableController.insertData
 );
 
 // ========================================
-// UPDATE DATA
-// PUT /api/tables/DEVICE_PROSIS/1
+// PUT
 // ========================================
 
 router.put(
     "/tables/:table/:id",
+    authorizeRole("admin"),
     tableController.updateData
 );
 
 // ========================================
-// DELETE DATA
-// DELETE /api/tables/DEVICE_PROSIS/1
+// DELETE
 // ========================================
 
 router.delete(
     "/tables/:table/:id",
+    authorizeRole("admin"),
     tableController.deleteData
 );
 

@@ -33,7 +33,11 @@ interface Pagination {
 }
 
 function Database() {
+const user = JSON.parse(
+    localStorage.getItem("user") || "null"
+);
 
+const isAdmin = user?.role === "admin";
     // ========================================
     // STATE
     // ========================================
@@ -739,13 +743,11 @@ function Database() {
                         Search
                     </button>
 
-                    <button
-                        onClick={
-                            handleAdd
-                        }
-                    >
-                        + Tambah Data
-                    </button>
+                    {isAdmin && (
+                            <button onClick={handleAdd}>
+                                + Tambah Data
+                            </button>
+                        )}
 
                 </div>
 
@@ -1050,30 +1052,21 @@ function Database() {
                                             }}
                                         >
 
-                                            <button
-                                                onClick={() =>
-                                                    handleEdit(
-                                                        row
-                                                    )
-                                                }
-                                            >
-                                                Edit
-                                            </button>
+                                            {isAdmin && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleEdit(row)}
+                                                        >
+                                                            Edit
+                                                        </button>
 
-
-                                            <button
-                                                onClick={() =>
-                                                    handleDelete(
-                                                        row
-                                                    )
-                                                }
-                                                style={{
-                                                    marginLeft:
-                                                        "8px",
-                                                }}
-                                            >
-                                                Hapus
-                                            </button>
+                                                        <button
+                                                            onClick={() => handleDelete(row)}
+                                                        >
+                                                            Hapus
+                                                        </button>
+                                                    </>
+                                                )}
 
                                         </td>
 
