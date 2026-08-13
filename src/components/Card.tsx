@@ -1,25 +1,30 @@
 interface CardProps {
-  title: string;
-  value: string;
-  color: string;
+    title: string;
+    value: string | number;
+    color: string;
 }
 
 export default function Card({
-  title,
-  value,
-  color,
+    title,
+    value,
+    color,
 }: CardProps) {
-  return (
-    <div className="bg-white rounded-xl shadow p-6">
-      <div className={`w-12 h-12 rounded-full ${color} mb-4`} />
 
-      <h3 className="text-gray-500">
-        {title}
-      </h3>
+    return (
+        <div className="rounded-xl bg-white p-6 shadow-sm transition hover:shadow-md">
 
-      <h2 className="text-3xl font-bold">
-        {value}
-      </h2>
-    </div>
-  );
+            <div
+                className={`mb-4 h-3 w-3 rounded-full ${color}`}
+            />
+
+            <p className="text-sm text-gray-500">
+                {title}
+            </p>
+
+            <h2 className="mt-2 text-3xl font-bold text-gray-800">
+                {value}
+            </h2>
+
+        </div>
+    );
 }

@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
+
+// ========================================
+// TYPES
+// ========================================
 
 interface Table {
     table_name: string;
@@ -32,20 +36,62 @@ interface Pagination {
     totalPages: number;
 }
 
+// ========================================
+// HELPERS
+// ========================================
+
+const isAutoIncrementColumn = (column: ColumnInfo) => {
+    return Boolean(
+        column.column_default &&
+        column.column_default.includes("nextval")
+    );
+};
+
+const getInputType = (dataType: string) => {
+    const type = dataType.toLowerCase();
+
+    if (
+        type.includes("integer") ||
+        type.includes("numeric") ||
+        type.includes("double") ||
+        type.includes("real") ||
+        type.includes("decimal")
+    ) {
+        return "number";
+    }
+
+    if (
+        type.includes("date") ||
+        type.includes("timestamp")
+    ) {
+        return "text";
+    }
+
+    if (type.includes("boolean")) {
+        return "checkbox";
+    }
+
+    return "text";
+};
+
 function Database() {
-const user = JSON.parse(
-    localStorage.getItem("user") || "null"
-);
 
-const isAdmin = user?.role === "admin";
     // ========================================
-    // STATE
+    // TABEL
     // ========================================
 
-    const [tables, setTables] = useState<Table[]>([]);
+    const [tables, setTables] =
+        useState<Table[]>([]);
 
     const [selectedTable, setSelectedTable] =
         useState("");
+
+    const [tableInfo, setTableInfo] =
+        useState<TableInfo | null>(null);
+
+    // ========================================
+    // DATA
+    // ========================================
 
     const [data, setData] =
         useState<TableData[]>([]);
@@ -53,16 +99,34 @@ const isAdmin = user?.role === "admin";
     const [pagination, setPagination] =
         useState<Pagination | null>(null);
 
-    const [tableInfo, setTableInfo] =
-        useState<TableInfo | null>(null);
-
-    const [loading, setLoading] =
-        useState(false);
+    // ========================================
+    // SEARCH
+    // ========================================
 
     const [search, setSearch] =
         useState("");
 
-    const [showForm, setShowForm] =
+    // ========================================
+    // LOADING
+    // ========================================
+
+    const [loadingTables, setLoadingTables] =
+        useState(true);
+
+    const [loadingData, setLoadingData] =
+        useState(false);
+
+    const [saving, setSaving] =
+        useState(false);
+
+    const [deleting, setDeleting] =
+        useState(false);
+
+    // ========================================
+    // FORM
+    // ========================================
+
+    const [showModal, setShowModal] =
         useState(false);
 
     const [editingRow, setEditingRow] =
@@ -71,89 +135,111 @@ const isAdmin = user?.role === "admin";
     const [formData, setFormData] =
         useState<TableData>({});
 
-    const [saving, setSaving] =
-        useState(false);
-
-
     // ========================================
-    // GET SEMUA TABEL
+    // USER / ROLE
     // ========================================
 
-    const getTables = async () => {
-
+    const user = useMemo(() => {
         try {
+            return JSON.parse(
+                localStorage.getItem("user") || "null"
+            );
+        } catch {
+            return null;
+        }
+    }, []);
+
+    const isAdmin =
+        user?.role === "admin";
+
+    // ========================================
+    // PRIMARY KEY
+    // ========================================
+
+    const primaryKey = useMemo(() => {
+        if (!tableInfo) {
+            return null;
+        }
+
+        const pk = tableInfo.columns.find(
+            (column) =>
+                column.is_primary_key === true
+        );
+
+        return pk?.column_name || null;
+    }, [tableInfo]);
+
+    // ========================================
+    // LOAD ALL TABLES
+    // ========================================
+
+    useEffect(() => {
+        loadTables();
+    }, []);
+
+    const loadTables = async () => {
+        try {
+            setLoadingTables(true);
 
             const response =
                 await api.get("/tables");
 
-            setTables(response.data);
-
+            setTables(
+                response.data || []
+            );
         } catch (error) {
-
             console.error(
-                "Gagal mengambil tabel:",
+                "Gagal mengambil daftar tabel:",
                 error
             );
-
-            alert(
-                "Gagal mengambil daftar tabel."
-            );
+        } finally {
+            setLoadingTables(false);
         }
     };
 
-
     // ========================================
-    // GET TABLE INFO
+    // LOAD TABLE INFO
     // ========================================
 
-    const getTableInfo = async (
-        table: string
+    const loadTableInfo = async (
+        tableName: string
     ) => {
-
-        try {
-
-            const response =
-                await api.get(
-                    `/tables/${encodeURIComponent(table)}/info`
-                );
-
-            setTableInfo(response.data);
-
-        } catch (error) {
-
-            console.error(
-                "Gagal mengambil informasi tabel:",
-                error
+        const response =
+            await api.get(
+                `/tables/${encodeURIComponent(
+                    tableName
+                )}/info`
             );
 
-            setTableInfo(null);
+        setTableInfo(
+            response.data
+        );
 
-            alert(
-                "Gagal mengambil informasi tabel."
-            );
-        }
+        return response.data;
     };
 
-
     // ========================================
-    // GET DATA TABEL
+    // LOAD TABLE DATA
     // ========================================
 
-    const getTableData = async (
-        table: string,
+    const loadTableData = async (
+        tableName: string,
         page = 1,
-        searchValue = search
+        searchValue = ""
     ) => {
 
-        if (!table) return;
+        if (!tableName) {
+            return;
+        }
 
         try {
-
-            setLoading(true);
+            setLoadingData(true);
 
             const response =
                 await api.get(
-                    `/tables/${encodeURIComponent(table)}`,
+                    `/tables/${encodeURIComponent(
+                        tableName
+                    )}`,
                     {
                         params: {
                             page,
@@ -174,7 +260,7 @@ const isAdmin = user?.role === "admin";
         } catch (error) {
 
             console.error(
-                "Gagal mengambil data:",
+                "Gagal mengambil data tabel:",
                 error
             );
 
@@ -183,32 +269,22 @@ const isAdmin = user?.role === "admin";
 
         } finally {
 
-            setLoading(false);
+            setLoadingData(false);
 
         }
     };
 
-
     // ========================================
-    // LOAD TABLES
-    // ========================================
-
-    useEffect(() => {
-
-        getTables();
-
-    }, []);
-
-
-    // ========================================
-    // PILIH TABEL
+    // SELECT TABLE
     // ========================================
 
     const handleSelectTable = async (
-        table: string
+        tableName: string
     ) => {
 
-        setSelectedTable(table);
+        setSelectedTable(
+            tableName
+        );
 
         setSearch("");
 
@@ -218,153 +294,303 @@ const isAdmin = user?.role === "admin";
 
         setTableInfo(null);
 
-        setShowForm(false);
+        closeModal();
 
-        setEditingRow(null);
+        if (!tableName) {
+            return;
+        }
 
-        setFormData({});
+        try {
 
-        if (!table) return;
+            setLoadingData(true);
 
-        await getTableInfo(table);
+            await loadTableInfo(
+                tableName
+            );
 
-        await getTableData(
-            table,
-            1,
-            ""
-        );
+            await loadTableData(
+                tableName,
+                1,
+                ""
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Gagal memilih tabel:",
+                error
+            );
+
+            setTableInfo(null);
+            setData([]);
+
+        } finally {
+
+            setLoadingData(false);
+
+        }
     };
-
 
     // ========================================
     // SEARCH
     // ========================================
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
 
-        if (!selectedTable) return;
+        if (!selectedTable) {
+            return;
+        }
 
-        getTableData(
+        await loadTableData(
             selectedTable,
             1,
             search
         );
     };
 
+    // ========================================
+    // RESET SEARCH
+    // ========================================
+
+    const handleResetSearch = async () => {
+
+        if (!selectedTable) {
+            return;
+        }
+
+        setSearch("");
+
+        await loadTableData(
+            selectedTable,
+            1,
+            ""
+        );
+    };
 
     // ========================================
-    // ENTER UNTUK SEARCH
+    // PAGE CHANGE
     // ========================================
 
-    const handleSearchKeyDown = (
-        e: React.KeyboardEvent<HTMLInputElement>
+    const handlePageChange = async (
+        page: number
     ) => {
 
-        if (e.key === "Enter") {
-            handleSearch();
-        }
-    };
-
-
-    // ========================================
-    // GET PRIMARY KEY
-    // ========================================
-
-    const getPrimaryKey = () => {
-
-        if (!tableInfo) {
-            return null;
+        if (!selectedTable) {
+            return;
         }
 
-        const primaryKey =
-            tableInfo.columns.find(
-                (column) =>
-                    column.is_primary_key === true
-            );
+        if (!pagination) {
+            return;
+        }
 
-        return primaryKey?.column_name || null;
+        if (
+            page < 1 ||
+            page > pagination.totalPages
+        ) {
+            return;
+        }
+
+        await loadTableData(
+            selectedTable,
+            page,
+            search
+        );
     };
 
-
     // ========================================
-    // BUKA FORM TAMBAH
+    // FORM OPEN - ADD
     // ========================================
 
-    const handleAdd = () => {
+    const openAddModal = () => {
 
-        if (!tableInfo) {
+        if (!isAdmin) {
             alert(
-                "Informasi tabel belum tersedia."
+                "Anda tidak memiliki izin untuk menambah data."
             );
 
             return;
         }
 
+        if (!tableInfo) {
+            return;
+        }
+
+        const initialData: TableData = {};
+
+        tableInfo.columns.forEach(
+            (column) => {
+
+                if (
+                    isAutoIncrementColumn(
+                        column
+                    )
+                ) {
+                    return;
+                }
+
+                if (
+                    getInputType(
+                        column.data_type
+                    ) === "checkbox"
+                ) {
+                    initialData[
+                        column.column_name
+                    ] = false;
+                } else {
+                    initialData[
+                        column.column_name
+                    ] = "";
+                }
+            }
+        );
+
         setEditingRow(null);
 
-        setFormData({});
+        setFormData(
+            initialData
+        );
 
-        setShowForm(true);
+        setShowModal(true);
     };
 
-
     // ========================================
-    // BUKA FORM EDIT
+    // FORM OPEN - EDIT
     // ========================================
 
-    const handleEdit = (
+    const openEditModal = (
         row: TableData
     ) => {
 
-        setEditingRow(row);
+        if (!isAdmin) {
+            alert(
+                "Anda tidak memiliki izin untuk mengedit data."
+            );
 
-        setFormData({
-            ...row,
-        });
+            return;
+        }
 
-        setShowForm(true);
+        setEditingRow(
+            row
+        );
+
+        const editData: TableData = {};
+
+        tableInfo?.columns.forEach(
+            (column) => {
+
+                editData[
+                    column.column_name
+                ] =
+                    row[
+                        column.column_name
+                    ] ?? "";
+
+            }
+        );
+
+        setFormData(
+            editData
+        );
+
+        setShowModal(true);
     };
 
-
     // ========================================
-    // HANDLE INPUT FORM
+    // FORM CHANGE
     // ========================================
 
     const handleFormChange = (
-        column: string,
-        value: string
+        column: ColumnInfo,
+        value: any
     ) => {
 
-        setFormData((prev) => ({
-            ...prev,
-            [column]: value,
-        }));
+        setFormData(
+            (previous) => ({
+                ...previous,
+                [column.column_name]:
+                    value,
+            })
+        );
     };
 
+    // ========================================
+    // PREPARE PAYLOAD
+    // ========================================
+
+    const preparePayload = () => {
+
+        if (!tableInfo) {
+            return {};
+        }
+
+        const payload: TableData = {};
+
+        tableInfo.columns.forEach(
+            (column) => {
+
+                // Saat insert, jangan kirim
+                // auto increment.
+                if (
+                    !editingRow &&
+                    isAutoIncrementColumn(
+                        column
+                    )
+                ) {
+                    return;
+                }
+
+                // Saat update, jangan kirim
+                // primary key.
+                if (
+                    editingRow &&
+                    column.is_primary_key
+                ) {
+                    return;
+                }
+
+                let value =
+                    formData[
+                        column.column_name
+                    ];
+
+                // String kosong untuk kolom
+                // nullable lebih aman dikirim
+                // sebagai null.
+                if (
+                    value === "" &&
+                    column.is_nullable === "YES"
+                ) {
+                    value = null;
+                }
+
+                payload[
+                    column.column_name
+                ] = value;
+            }
+        );
+
+        return payload;
+    };
 
     // ========================================
     // SUBMIT FORM
     // ========================================
 
     const handleSubmit = async (
-        e: React.FormEvent
+        event: React.FormEvent
     ) => {
 
-        e.preventDefault();
+        event.preventDefault();
 
-        if (!selectedTable) {
+        if (!isAdmin) {
             alert(
-                "Silakan pilih tabel terlebih dahulu."
+                "Anda tidak memiliki izin."
             );
 
             return;
         }
 
-        if (!tableInfo) {
-            alert(
-                "Informasi tabel belum tersedia."
-            );
-
+        if (!selectedTable) {
             return;
         }
 
@@ -372,14 +598,14 @@ const isAdmin = user?.role === "admin";
 
             setSaving(true);
 
-            // ====================================
+            const payload =
+                preparePayload();
+
+            // =================================
             // UPDATE
-            // ====================================
+            // =================================
 
             if (editingRow) {
-
-                const primaryKey =
-                    getPrimaryKey();
 
                 if (!primaryKey) {
 
@@ -391,13 +617,17 @@ const isAdmin = user?.role === "admin";
                 }
 
                 const id =
-                    editingRow[primaryKey];
+                    editingRow[
+                        primaryKey
+                    ];
 
                 await api.put(
                     `/tables/${encodeURIComponent(
                         selectedTable
-                    )}/${encodeURIComponent(id)}`,
-                    formData
+                    )}/${encodeURIComponent(
+                        id
+                    )}`,
+                    payload
                 );
 
                 alert(
@@ -406,9 +636,9 @@ const isAdmin = user?.role === "admin";
 
             }
 
-            // ====================================
+            // =================================
             // INSERT
-            // ====================================
+            // =================================
 
             else {
 
@@ -416,7 +646,7 @@ const isAdmin = user?.role === "admin";
                     `/tables/${encodeURIComponent(
                         selectedTable
                     )}`,
-                    formData
+                    payload
                 );
 
                 alert(
@@ -424,17 +654,9 @@ const isAdmin = user?.role === "admin";
                 );
             }
 
-            // ====================================
-            // RESET
-            // ====================================
+            closeModal();
 
-            setShowForm(false);
-
-            setEditingRow(null);
-
-            setFormData({});
-
-            await getTableData(
+            await loadTableData(
                 selectedTable,
                 pagination?.page || 1,
                 search
@@ -449,6 +671,7 @@ const isAdmin = user?.role === "admin";
 
             const message =
                 error?.response?.data?.error ||
+                error?.response?.data?.message ||
                 "Gagal menyimpan data.";
 
             alert(message);
@@ -460,24 +683,30 @@ const isAdmin = user?.role === "admin";
         }
     };
 
-
     // ========================================
-    // DELETE DATA
+    // DELETE
     // ========================================
 
     const handleDelete = async (
         row: TableData
     ) => {
 
-        if (!selectedTable) return;
+        if (!isAdmin) {
+            alert(
+                "Anda tidak memiliki izin untuk menghapus data."
+            );
 
-        const primaryKey =
-            getPrimaryKey();
+            return;
+        }
+
+        if (!selectedTable) {
+            return;
+        }
 
         if (!primaryKey) {
 
             alert(
-                "Tabel ini tidak memiliki primary key."
+                "Tabel ini tidak memiliki primary key, sehingga data tidak dapat dihapus melalui interface ini."
             );
 
             return;
@@ -487,8 +716,8 @@ const isAdmin = user?.role === "admin";
             row[primaryKey];
 
         if (
-            id === undefined ||
-            id === null
+            id === null ||
+            id === undefined
         ) {
 
             alert(
@@ -503,23 +732,27 @@ const isAdmin = user?.role === "admin";
                 `Yakin ingin menghapus data dengan ${primaryKey} = ${id}?`
             );
 
-        if (!confirmed) return;
+        if (!confirmed) {
+            return;
+        }
 
         try {
 
-            setLoading(true);
+            setDeleting(true);
 
             await api.delete(
                 `/tables/${encodeURIComponent(
                     selectedTable
-                )}/${encodeURIComponent(id)}`
+                )}/${encodeURIComponent(
+                    id
+                )}`
             );
 
             alert(
                 "Data berhasil dihapus."
             );
 
-            await getTableData(
+            await loadTableData(
                 selectedTable,
                 pagination?.page || 1,
                 search
@@ -534,31 +767,101 @@ const isAdmin = user?.role === "admin";
 
             const message =
                 error?.response?.data?.error ||
+                error?.response?.data?.message ||
                 "Gagal menghapus data.";
 
             alert(message);
 
         } finally {
 
-            setLoading(false);
+            setDeleting(false);
 
         }
     };
 
-
     // ========================================
-    // TUTUP FORM
+    // CLOSE MODAL
     // ========================================
 
-    const handleCancelForm = () => {
+    const closeModal = () => {
 
-        setShowForm(false);
+        setShowModal(false);
 
         setEditingRow(null);
 
         setFormData({});
     };
 
+    // ========================================
+    // PAGE NUMBERS
+    // ========================================
+
+    const pageNumbers = useMemo(() => {
+
+        if (!pagination) {
+            return [];
+        }
+
+        const totalPages =
+            pagination.totalPages;
+
+        const currentPage =
+            pagination.page;
+
+        const maxVisible = 7;
+
+        if (
+            totalPages <= maxVisible
+        ) {
+
+            return Array.from(
+                {
+                    length: totalPages,
+                },
+                (_, index) =>
+                    index + 1
+            );
+
+        }
+
+        let start =
+            Math.max(
+                1,
+                currentPage - 3
+            );
+
+        let end =
+            Math.min(
+                totalPages,
+                currentPage + 3
+            );
+
+        if (currentPage <= 3) {
+            start = 1;
+            end = 7;
+        }
+
+        if (
+            currentPage >=
+            totalPages - 2
+        ) {
+            start =
+                totalPages - 6;
+
+            end =
+                totalPages;
+        }
+
+        return Array.from(
+            {
+                length:
+                    end - start + 1,
+            },
+            (_, index) =>
+                start + index
+        );
+
+    }, [pagination]);
 
     // ========================================
     // RENDER
@@ -566,619 +869,843 @@ const isAdmin = user?.role === "admin";
 
     return (
 
-        <div
-            style={{
-                padding: "24px",
-            }}
-        >
+        <div className="flex min-h-screen bg-gray-100">
 
-            <h1>
-                Database
-            </h1>
+            {/* =================================
+                SIDEBAR TABLE
+            ================================= */}
 
+            <aside className="w-72 min-w-72 bg-white p-5 shadow-sm">
 
-            {/* ================================== */}
-            {/* PILIH TABEL */}
-            {/* ================================== */}
+                <div className="mb-6">
 
-            <div
-                style={{
-                    marginBottom: "20px",
-                }}
-            >
+                    <h1 className="text-xl font-bold text-gray-800">
+                        Database Explorer
+                    </h1>
 
-                <h3>
-                    Daftar Tabel
-                </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                        PostgreSQL
+                    </p>
 
-                <select
-                    value={selectedTable}
-                    onChange={(e) =>
-                        handleSelectTable(
-                            e.target.value
-                        )
-                    }
-                    style={{
-                        padding: "8px",
-                        minWidth: "250px",
-                    }}
-                >
+                </div>
 
-                    <option value="">
-                        -- Pilih Tabel --
-                    </option>
+                {loadingTables ? (
 
-                    {tables.map(
-                        (table) => (
+                    <p className="text-sm text-gray-500">
+                        Memuat tabel...
+                    </p>
 
-                            <option
-                                key={
-                                    table.table_name
-                                }
-                                value={
-                                    table.table_name
-                                }
-                            >
-                                {
-                                    table.table_name
-                                }
-                            </option>
+                ) : tables.length === 0 ? (
 
-                        )
-                    )}
+                    <p className="text-sm text-gray-500">
+                        Tidak ada tabel.
+                    </p>
 
-                </select>
+                ) : (
 
-            </div>
+                    <div className="space-y-1">
 
+                        {tables.map(
+                            (table) => (
 
-            {/* ================================== */}
-            {/* INFO TABEL */}
-            {/* ================================== */}
+                                <button
+                                    key={
+                                        table.table_name
+                                    }
+                                    onClick={() =>
+                                        handleSelectTable(
+                                            table.table_name
+                                        )
+                                    }
+                                    className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+                                        selectedTable ===
+                                        table.table_name
+                                            ? "bg-blue-600 font-semibold text-white"
+                                            : "text-gray-700 hover:bg-gray-100"
+                                    }`}
+                                >
+                                    {
+                                        table.table_name
+                                    }
+                                </button>
 
-            {selectedTable &&
-                tableInfo && (
-
-                    <div
-                        style={{
-                            marginBottom:
-                                "20px",
-                            padding: "15px",
-                            border:
-                                "1px solid #ddd",
-                            borderRadius:
-                                "8px",
-                        }}
-                    >
-
-                        <h3>
-                            Informasi Tabel
-                        </h3>
-
-                        <p>
-                            <strong>
-                                Nama:
-                            </strong>{" "}
-                            {
-                                tableInfo.table
-                                    .table_name
-                            }
-                        </p>
-
-                        <p>
-                            <strong>
-                                Tipe:
-                            </strong>{" "}
-                            {
-                                tableInfo.table
-                                    .table_type
-                            }
-                        </p>
-
-                        <p>
-                            <strong>
-                                Jumlah Kolom:
-                            </strong>{" "}
-                            {
-                                tableInfo
-                                    .columns
-                                    .length
-                            }
-                        </p>
-
-                        <p>
-                            <strong>
-                                Primary Key:
-                            </strong>{" "}
-
-                            {getPrimaryKey() ||
-                                "Tidak ada"}
-                        </p>
+                            )
+                        )}
 
                     </div>
 
                 )}
 
-
-            {/* ================================== */}
-            {/* SEARCH + TAMBAH */}
-            {/* ================================== */}
-
-            {selectedTable && (
-
-                <div
-                    style={{
-                        marginBottom:
-                            "20px",
-                        display: "flex",
-                        gap: "8px",
-                        alignItems:
-                            "center",
-                    }}
-                >
-
-                    <input
-                        type="text"
-                        placeholder="Cari data..."
-                        value={search}
-                        onChange={(e) =>
-                            setSearch(
-                                e.target.value
-                            )
-                        }
-                        onKeyDown={
-                            handleSearchKeyDown
-                        }
-                        style={{
-                            padding: "8px",
-                            width: "300px",
-                        }}
-                    />
-
-                    <button
-                        onClick={
-                            handleSearch
-                        }
-                    >
-                        Search
-                    </button>
-
-                    {isAdmin && (
-                            <button onClick={handleAdd}>
-                                + Tambah Data
-                            </button>
-                        )}
-
-                </div>
-
-            )}
+            </aside>
 
 
-            {/* ================================== */}
-            {/* FORM TAMBAH / EDIT */}
-            {/* ================================== */}
+            {/* =================================
+                MAIN
+            ================================= */}
 
-            {showForm &&
-                tableInfo && (
+            <main className="min-w-0 flex-1 p-6 md:p-8">
 
-                    <div
-                        style={{
-                            marginBottom:
-                                "25px",
-                            padding: "20px",
-                            border:
-                                "1px solid #ddd",
-                            borderRadius:
-                                "8px",
-                        }}
-                    >
+                {!selectedTable ? (
 
-                        <h2>
-                            {editingRow
-                                ? "Edit Data"
-                                : "Tambah Data"}
+                    <div>
+
+                        <h2 className="text-2xl font-bold text-gray-800">
+                            Database
                         </h2>
 
+                        <p className="mt-2 text-gray-500">
+                            Pilih tabel di sebelah kiri
+                            untuk melihat dan mengelola
+                            data.
+                        </p>
 
-                        <form
-                            onSubmit={
-                                handleSubmit
-                            }
-                        >
+                    </div>
 
-                            {tableInfo.columns.map(
-                                (column) => {
+                ) : (
 
-                                    const isPrimaryKey =
-                                        column.is_primary_key;
+                    <>
 
-                                    const isAutoIncrement =
-                                        column.column_default
-                                            ?.includes(
-                                                "nextval"
-                                            );
+                        {/* =========================
+                            HEADER
+                        ========================= */}
 
-                                    /*
-                                     * Primary key auto increment
-                                     * tidak perlu diinput user
-                                     */
+                        <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
 
-                                    if (
-                                        !editingRow &&
-                                        isAutoIncrement
-                                    ) {
-                                        return null;
+                            <div>
+
+                                <h2 className="text-2xl font-bold text-gray-800">
+                                    {
+                                        selectedTable
                                     }
+                                </h2>
 
-                                    return (
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Tipe:{" "}
+                                    {
+                                        tableInfo?.table
+                                            .table_type ||
+                                        "-"
+                                    }
+                                    {" • "}
+                                    Primary Key:{" "}
+                                    {
+                                        primaryKey ||
+                                        "Tidak ada"
+                                    }
+                                </p>
 
-                                        <div
-                                            key={
-                                                column.column_name
-                                            }
-                                            style={{
-                                                marginBottom:
-                                                    "12px",
-                                            }}
-                                        >
-
-                                            <label
-                                                style={{
-                                                    display:
-                                                        "block",
-                                                    marginBottom:
-                                                        "5px",
-                                                }}
-                                            >
-
-                                                <strong>
-                                                    {
-                                                        column.column_name
-                                                    }
-                                                </strong>
-
-                                                {" "}
-
-                                                <small>
-                                                    (
-                                                    {
-                                                        column.data_type
-                                                    }
-                                                    )
-                                                </small>
-
-                                                {column.is_nullable ===
-                                                    "NO" &&
-                                                    !isPrimaryKey && (
-                                                        <span>
-                                                            {" "}
-                                                            *
-                                                        </span>
-                                                    )}
-
-                                            </label>
+                            </div>
 
 
-                                            <input
-                                                type="text"
-                                                value={
-                                                    formData[
-                                                        column
-                                                            .column_name
-                                                    ] ??
-                                                    ""
-                                                }
-                                                disabled={
-                                                    editingRow
-                                                        ? isPrimaryKey
-                                                        : false
-                                                }
-                                                onChange={(
-                                                    e
-                                                ) =>
-                                                    handleFormChange(
-                                                        column.column_name,
-                                                        e
-                                                            .target
-                                                            .value
-                                                    )
-                                                }
-                                                style={{
-                                                    padding:
-                                                        "8px",
-                                                    width:
-                                                        "100%",
-                                                    maxWidth:
-                                                        "500px",
-                                                    boxSizing:
-                                                        "border-box",
-                                                }}
-                                            />
+                            {/* ADMIN ACTION */}
 
-                                        </div>
-
-                                    );
-
-                                }
-                            )}
-
-
-                            <div
-                                style={{
-                                    marginTop:
-                                        "20px",
-                                }}
-                            >
+                            {isAdmin && (
 
                                 <button
-                                    type="submit"
-                                    disabled={
-                                        saving
+                                    onClick={
+                                        openAddModal
                                     }
+                                    className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
                                 >
-                                    {saving
-                                        ? "Menyimpan..."
-                                        : editingRow
-                                        ? "Simpan Perubahan"
-                                        : "Tambah Data"}
+                                    + Tambah Data
                                 </button>
 
-                                <button
-                                    type="button"
-                                    onClick={
-                                        handleCancelForm
+                            )}
+
+                        </div>
+
+
+                        {/* =========================
+                            TABLE INFO
+                        ========================= */}
+
+                        {tableInfo && (
+
+                            <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">
+
+                                <h3 className="mb-4 font-semibold text-gray-800">
+                                    Struktur Tabel
+                                </h3>
+
+                                <div className="overflow-x-auto">
+
+                                    <table className="w-full min-w-[700px] border-collapse">
+
+                                        <thead>
+
+                                            <tr className="bg-gray-50">
+
+                                                <th className="border p-3 text-left text-sm">
+                                                    Kolom
+                                                </th>
+
+                                                <th className="border p-3 text-left text-sm">
+                                                    Tipe
+                                                </th>
+
+                                                <th className="border p-3 text-center text-sm">
+                                                    Primary Key
+                                                </th>
+
+                                                <th className="border p-3 text-center text-sm">
+                                                    Nullable
+                                                </th>
+
+                                                <th className="border p-3 text-left text-sm">
+                                                    Default
+                                                </th>
+
+                                            </tr>
+
+                                        </thead>
+
+                                        <tbody>
+
+                                            {tableInfo.columns.map(
+                                                (column) => (
+
+                                                    <tr
+                                                        key={
+                                                            column.column_name
+                                                        }
+                                                    >
+
+                                                        <td className="border p-3 text-sm">
+                                                            {
+                                                                column.column_name
+                                                            }
+                                                        </td>
+
+                                                        <td className="border p-3 text-sm">
+                                                            {
+                                                                column.data_type
+                                                            }
+                                                        </td>
+
+                                                        <td className="border p-3 text-center text-sm">
+                                                            {column.is_primary_key
+                                                                ? "✓"
+                                                                : "-"}
+                                                        </td>
+
+                                                        <td className="border p-3 text-center text-sm">
+                                                            {
+                                                                column.is_nullable
+                                                            }
+                                                        </td>
+
+                                                        <td className="border p-3 text-sm">
+                                                            {
+                                                                column.column_default ||
+                                                                "-"
+                                                            }
+                                                        </td>
+
+                                                    </tr>
+
+                                                )
+                                            )}
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+
+                            </div>
+
+                        )}
+
+
+                        {/* =========================
+                            SEARCH
+                        ========================= */}
+
+                        <div className="mb-6 flex flex-col gap-3 sm:flex-row">
+
+                            <input
+                                type="text"
+                                placeholder="Cari data..."
+                                value={search}
+                                onChange={(e) =>
+                                    setSearch(
+                                        e.target.value
+                                    )
+                                }
+                                onKeyDown={(
+                                    e
+                                ) => {
+
+                                    if (
+                                        e.key ===
+                                        "Enter"
+                                    ) {
+                                        handleSearch();
                                     }
-                                    style={{
-                                        marginLeft:
-                                            "8px",
-                                    }}
+
+                                }}
+                                className="w-full rounded-lg border bg-white px-4 py-2 outline-none focus:border-blue-500 sm:w-80"
+                            />
+
+                            <button
+                                onClick={
+                                    handleSearch
+                                }
+                                className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+                            >
+                                Cari
+                            </button>
+
+                            <button
+                                onClick={
+                                    handleResetSearch
+                                }
+                                className="rounded-lg border bg-white px-4 py-2 font-medium text-gray-700 hover:bg-gray-50"
+                            >
+                                Reset
+                            </button>
+
+                        </div>
+
+
+                        {/* =========================
+                            DATA TABLE
+                        ========================= */}
+
+                        <div className="rounded-xl bg-white shadow-sm">
+
+                            {loadingData ? (
+
+                                <div className="p-10 text-center text-gray-500">
+                                    Memuat data...
+                                </div>
+
+                            ) : data.length === 0 ? (
+
+                                <div className="p-10 text-center text-gray-500">
+                                    Tidak ada data.
+                                </div>
+
+                            ) : (
+
+                                <div className="overflow-x-auto">
+
+                                    <table className="w-full min-w-max border-collapse">
+
+                                        <thead>
+
+                                            <tr className="bg-gray-50">
+
+                                                {Object.keys(
+                                                    data[0]
+                                                ).map(
+                                                    (
+                                                        column
+                                                    ) => (
+
+                                                        <th
+                                                            key={
+                                                                column
+                                                            }
+                                                            className="border-b p-3 text-left text-sm font-semibold text-gray-700"
+                                                        >
+                                                            {
+                                                                column
+                                                            }
+                                                        </th>
+
+                                                    )
+                                                )}
+
+                                                {isAdmin && (
+
+                                                    <th className="border-b p-3 text-left text-sm font-semibold text-gray-700">
+                                                        Aksi
+                                                    </th>
+
+                                                )}
+
+                                            </tr>
+
+                                        </thead>
+
+
+                                        <tbody>
+
+                                            {data.map(
+                                                (
+                                                    row,
+                                                    index
+                                                ) => (
+
+                                                    <tr
+                                                        key={
+                                                            index
+                                                        }
+                                                        className="hover:bg-gray-50"
+                                                    >
+
+                                                        {Object.keys(
+                                                            data[0]
+                                                        ).map(
+                                                            (
+                                                                column
+                                                            ) => (
+
+                                                                <td
+                                                                    key={
+                                                                        column
+                                                                    }
+                                                                    className="border-b p-3 text-sm text-gray-700"
+                                                                >
+
+                                                                    {row[
+                                                                        column
+                                                                    ] !==
+                                                                    null &&
+                                                                    row[
+                                                                        column
+                                                                    ] !==
+                                                                    undefined
+                                                                        ? String(
+                                                                              row[
+                                                                                  column
+                                                                              ]
+                                                                          )
+                                                                        : "-"}
+
+                                                                </td>
+
+                                                            )
+                                                        )}
+
+
+                                                        {isAdmin && (
+
+                                                            <td className="border-b p-3">
+
+                                                                <div className="flex gap-2">
+
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            openEditModal(
+                                                                                row
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            deleting
+                                                                        }
+                                                                        className="rounded-md bg-yellow-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-yellow-600 disabled:opacity-50"
+                                                                    >
+                                                                        Edit
+                                                                    </button>
+
+
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            handleDelete(
+                                                                                row
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            deleting
+                                                                        }
+                                                                        className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                                                                    >
+                                                                        Hapus
+                                                                    </button>
+
+                                                                </div>
+
+                                                            </td>
+
+                                                        )}
+
+                                                    </tr>
+
+                                                )
+                                            )}
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+
+                            )}
+
+                        </div>
+
+
+                        {/* =========================
+                            PAGINATION
+                        ========================= */}
+
+                        {pagination && (
+                            <div className="mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+
+                                <p className="text-sm text-gray-500">
+
+                                    Menampilkan{" "}
+                                    {data.length}{" "}
+                                    dari{" "}
+                                    {pagination.total}{" "}
+                                    data
+
+                                </p>
+
+
+                                <div className="flex items-center gap-1">
+
+                                    <button
+                                        disabled={
+                                            pagination.page <=
+                                            1
+                                        }
+                                        onClick={() =>
+                                            handlePageChange(
+                                                pagination.page -
+                                                    1
+                                            )
+                                        }
+                                        className="rounded-md border bg-white px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        ←
+                                    </button>
+
+
+                                    {pageNumbers.map(
+                                        (pageNumber) => (
+
+                                            <button
+                                                key={
+                                                    pageNumber
+                                                }
+                                                onClick={() =>
+                                                    handlePageChange(
+                                                        pageNumber
+                                                    )
+                                                }
+                                                className={`rounded-md border px-3 py-2 text-sm ${
+                                                    pagination.page ===
+                                                    pageNumber
+                                                        ? "border-blue-600 bg-blue-600 text-white"
+                                                        : "bg-white text-gray-700 hover:bg-gray-50"
+                                                }`}
+                                            >
+                                                {
+                                                    pageNumber
+                                                }
+                                            </button>
+
+                                        )
+                                    )}
+
+
+                                    <button
+                                        disabled={
+                                            pagination.page >=
+                                            pagination.totalPages
+                                        }
+                                        onClick={() =>
+                                            handlePageChange(
+                                                pagination.page +
+                                                    1
+                                            )
+                                        }
+                                        className="rounded-md border bg-white px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        →
+                                    </button>
+
+                                </div>
+
+                            </div>
+                        )}
+
+                    </>
+
+                )}
+
+            </main>
+
+
+            {/* =================================
+                MODAL ADD / EDIT
+            ================================= */}
+
+            {showModal &&
+                tableInfo && (
+
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+
+                        <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
+
+                            {/* HEADER */}
+
+                            <div className="mb-6 flex items-center justify-between">
+
+                                <div>
+
+                                    <h2 className="text-xl font-bold text-gray-800">
+                                        {editingRow
+                                            ? "Edit Data"
+                                            : "Tambah Data"}
+                                    </h2>
+
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        {
+                                            selectedTable
+                                        }
+                                    </p>
+
+                                </div>
+
+
+                                <button
+                                    onClick={
+                                        closeModal
+                                    }
+                                    className="rounded-lg px-3 py-2 text-gray-500 hover:bg-gray-100"
                                 >
-                                    Batal
+                                    ✕
                                 </button>
 
                             </div>
 
-                        </form>
+
+                            {/* FORM */}
+
+                            <form
+                                onSubmit={
+                                    handleSubmit
+                                }
+                            >
+
+                                <div className="space-y-4">
+
+                                    {tableInfo.columns.map(
+                                        (column) => {
+
+                                            const autoIncrement =
+                                                isAutoIncrementColumn(
+                                                    column
+                                                );
+
+                                            const inputType =
+                                                getInputType(
+                                                    column.data_type
+                                                );
+
+                                            // Jangan tampilkan
+                                            // sequence primary key
+                                            // ketika INSERT.
+                                            if (
+                                                !editingRow &&
+                                                autoIncrement
+                                            ) {
+                                                return null;
+                                            }
+
+                                            const isPrimaryKey =
+                                                column.is_primary_key;
+
+                                            const disabled =
+                                                Boolean(
+                                                    editingRow &&
+                                                    isPrimaryKey
+                                                );
+
+                                            return (
+
+                                                <div
+                                                    key={
+                                                        column.column_name
+                                                    }
+                                                >
+
+                                                    <label className="mb-1 block text-sm font-semibold text-gray-700">
+
+                                                        {
+                                                            column.column_name
+                                                        }
+
+                                                        {column.is_nullable ===
+                                                            "NO" &&
+                                                            !isPrimaryKey && (
+                                                                <span className="text-red-500">
+                                                                    {" "}
+                                                                    *
+                                                                </span>
+                                                            )}
+
+                                                    </label>
+
+
+                                                    {inputType ===
+                                                    "checkbox" ? (
+
+                                                        <label className="flex items-center gap-2">
+
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={
+                                                                    Boolean(
+                                                                        formData[
+                                                                            column.column_name
+                                                                        ]
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    disabled
+                                                                }
+                                                                onChange={(
+                                                                    e
+                                                                ) =>
+                                                                    handleFormChange(
+                                                                        column,
+                                                                        e
+                                                                            .target
+                                                                            .checked
+                                                                    )
+                                                                }
+                                                                className="h-4 w-4"
+                                                            />
+
+                                                            <span className="text-sm text-gray-600">
+                                                                {
+                                                                    formData[
+                                                                        column
+                                                                            .column_name
+                                                                    ]
+                                                                        ? "True"
+                                                                        : "False"
+                                                                }
+                                                            </span>
+
+                                                        </label>
+
+                                                    ) : column.data_type
+                                                        .toLowerCase()
+                                                        .includes(
+                                                            "text"
+                                                        ) ? (
+
+                                                        <textarea
+                                                            value={
+                                                                formData[
+                                                                    column
+                                                                        .column_name
+                                                                ] ??
+                                                                ""
+                                                            }
+                                                            disabled={
+                                                                disabled
+                                                            }
+                                                            onChange={(
+                                                                e
+                                                            ) =>
+                                                                handleFormChange(
+                                                                    column,
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
+                                                            rows={3}
+                                                            className="w-full rounded-lg border px-3 py-2 outline-none focus:border-blue-500 disabled:bg-gray-100"
+                                                        />
+
+                                                    ) : (
+
+                                                        <input
+                                                            type={
+                                                                inputType
+                                                            }
+                                                            value={
+                                                                formData[
+                                                                    column
+                                                                        .column_name
+                                                                ] ??
+                                                                ""
+                                                            }
+                                                            disabled={
+                                                                disabled
+                                                            }
+                                                            onChange={(
+                                                                e
+                                                            ) =>
+                                                                handleFormChange(
+                                                                    column,
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
+                                                            className="w-full rounded-lg border px-3 py-2 outline-none focus:border-blue-500 disabled:bg-gray-100"
+                                                        />
+
+                                                    )}
+
+                                                    {disabled && (
+                                                        <p className="mt-1 text-xs text-gray-400">
+                                                            Primary key
+                                                            tidak dapat
+                                                            diubah.
+                                                        </p>
+                                                    )}
+
+                                                </div>
+
+                                            );
+
+                                        }
+                                    )}
+
+                                </div>
+
+
+                                {/* BUTTON */}
+
+                                <div className="mt-6 flex justify-end gap-3">
+
+                                    <button
+                                        type="button"
+                                        onClick={
+                                            closeModal
+                                        }
+                                        disabled={
+                                            saving
+                                        }
+                                        className="rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Batal
+                                    </button>
+
+
+                                    <button
+                                        type="submit"
+                                        disabled={
+                                            saving
+                                        }
+                                        className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                                    >
+                                        {saving
+                                            ? "Menyimpan..."
+                                            : editingRow
+                                            ? "Simpan Perubahan"
+                                            : "Tambah Data"}
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
 
                     </div>
 
                 )}
 
-
-            {/* ================================== */}
-            {/* DATA */}
-            {/* ================================== */}
-
-            {loading ? (
-
-                <p>
-                    Loading...
-                </p>
-
-            ) : selectedTable &&
-                data.length > 0 ? (
-
-                <div
-                    style={{
-                        overflowX:
-                            "auto",
-                    }}
-                >
-
-                    <table
-                        border={1}
-                        cellPadding={8}
-                        style={{
-                            borderCollapse:
-                                "collapse",
-                            width:
-                                "100%",
-                        }}
-                    >
-
-                        <thead>
-
-                            <tr>
-
-                                {Object.keys(
-                                    data[0]
-                                ).map(
-                                    (column) => (
-
-                                        <th
-                                            key={
-                                                column
-                                            }
-                                        >
-                                            {
-                                                column
-                                            }
-                                        </th>
-
-                                    )
-                                )}
-
-                                <th>
-                                    Aksi
-                                </th>
-
-                            </tr>
-
-                        </thead>
-
-
-                        <tbody>
-
-                            {data.map(
-                                (
-                                    row,
-                                    index
-                                ) => (
-
-                                    <tr
-                                        key={
-                                            index
-                                        }
-                                    >
-
-                                        {Object.keys(
-                                            data[0]
-                                        ).map(
-                                            (
-                                                column
-                                            ) => (
-
-                                                <td
-                                                    key={
-                                                        column
-                                                    }
-                                                >
-                                                    {
-                                                        row[
-                                                            column
-                                                        ] ??
-                                                        "-"
-                                                    }
-                                                </td>
-
-                                            )
-                                        )}
-
-
-                                        <td
-                                            style={{
-                                                whiteSpace:
-                                                    "nowrap",
-                                            }}
-                                        >
-
-                                            {isAdmin && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => handleEdit(row)}
-                                                        >
-                                                            Edit
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => handleDelete(row)}
-                                                        >
-                                                            Hapus
-                                                        </button>
-                                                    </>
-                                                )}
-
-                                        </td>
-
-                                    </tr>
-
-                                )
-                            )}
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            ) : selectedTable ? (
-
-                <p>
-                    Tidak ada data.
-                </p>
-
-            ) : (
-
-                <p>
-                    Silakan pilih tabel.
-                </p>
-
-            )}
-
-
-            {/* ================================== */}
-            {/* PAGINATION */}
-            {/* ================================== */}
-
-            {pagination && (
-
-                <div
-                    style={{
-                        marginTop:
-                            "20px",
-                        display:
-                            "flex",
-                        alignItems:
-                            "center",
-                        gap: "15px",
-                    }}
-                >
-
-                    <button
-                        disabled={
-                            pagination.page <=
-                            1
-                        }
-                        onClick={() =>
-                            getTableData(
-                                selectedTable,
-                                pagination.page -
-                                    1,
-                                search
-                            )
-                        }
-                    >
-                        ← Previous
-                    </button>
-
-
-                    <span>
-
-                        Page{" "}
-                        {
-                            pagination.page
-                        }{" "}
-
-                        dari{" "}
-
-                        {
-                            pagination.totalPages
-                        }
-
-                    </span>
-
-
-                    <button
-                        disabled={
-                            pagination.page >=
-                            pagination.totalPages
-                        }
-                        onClick={() =>
-                            getTableData(
-                                selectedTable,
-                                pagination.page +
-                                    1,
-                                search
-                            )
-                        }
-                    >
-                        Next →
-                    </button>
-
-
-                    <span>
-                        Total:{" "}
-                        {
-                            pagination.total
-                        }
-                    </span>
-
-                </div>
-
-            )}
-
         </div>
-
     );
 }
 

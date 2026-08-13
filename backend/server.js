@@ -7,6 +7,7 @@ const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
+const dashboardRoutes = require("./routes/dashboardRoutes");
 // ========================================
 // MIDDLEWARE
 // ========================================
@@ -68,6 +69,10 @@ app.use(
     tableRoutes
 );
 
+app.use(
+    "/api/dashboard",
+    dashboardRoutes
+);
 // ========================================
 // SERVER
 // ========================================

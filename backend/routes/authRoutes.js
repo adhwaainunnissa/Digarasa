@@ -18,4 +18,10 @@ router.get(
     authController.me
 );
 
+router.put(
+    "/change-password",
+    authenticateToken,
+    authController.changePassword
+);
+
 module.exports = router;

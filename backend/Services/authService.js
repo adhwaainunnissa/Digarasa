@@ -9,7 +9,7 @@ if (!JWT_SECRET) {
 }
 
 exports.login = async (username, password) => {
-    // Cari user berdasarkan username
+
     const result = await db.query(
         `
         SELECT
@@ -26,41 +26,25 @@ exports.login = async (username, password) => {
     );
 
     if (result.rows.length === 0) {
-        throw new Error("Username atau password salah");
+        throw new Error(
+            "Username atau password salah"
+        );
     }
 
     const user = result.rows[0];
 
-    let passwordValid = false;
-
-    // =========================================
-    // SEMENTARA:
-    // Database sekarang masih plaintext
-    // =========================================
-
-    if (
-        typeof user.password === "string" &&
-        (
-            user.password.startsWith("$2a$") ||
-            user.password.startsWith("$2b$") ||
-            user.password.startsWith("$2y$")
-        )
-    ) {
-        // Kalau sudah bcrypt hash
-        passwordValid = await bcrypt.compare(
+    const passwordValid =
+        await bcrypt.compare(
             password,
             user.password
         );
-    } else {
-        // Sementara untuk data plaintext lama
-        passwordValid = password === user.password;
-    }
 
     if (!passwordValid) {
-        throw new Error("Username atau password salah");
+        throw new Error(
+            "Username atau password salah"
+        );
     }
 
-    // Jangan kirim password ke frontend
     const userData = {
         id: user.id,
         username: user.username,
@@ -68,7 +52,6 @@ exports.login = async (username, password) => {
         role: user.role,
     };
 
-    // Buat JWT
     const token = jwt.sign(
         userData,
         JWT_SECRET,
@@ -81,4 +64,59 @@ exports.login = async (username, password) => {
         user: userData,
         token,
     };
+};
+exports.changePassword = async (
+    userId,
+    currentPassword,
+    newPassword
+) => {
+
+    const result = await db.query(
+        `
+        SELECT
+            id,
+            password
+        FROM "admin"
+        WHERE id = $1
+        `,
+        [userId]
+    );
+
+    if (result.rows.length === 0) {
+        throw new Error(
+            "User tidak ditemukan"
+        );
+    }
+
+    const user = result.rows[0];
+
+    const valid =
+        await bcrypt.compare(
+            currentPassword,
+            user.password
+        );
+
+    if (!valid) {
+        throw new Error(
+            "Password lama salah"
+        );
+    }
+
+    const hashedPassword =
+        await bcrypt.hash(
+            newPassword,
+            10
+        );
+
+    await db.query(
+        `
+        UPDATE "admin"
+        SET password = $1
+        WHERE id = $2
+        `,
+        [
+            hashedPassword,
+            userId,
+        ]
+    );
 };
