@@ -6,7 +6,7 @@ if (!JWT_SECRET) {
     throw new Error("JWT_SECRET belum diset di .env");
 }
 
-const authenticateToken = (req, res, next) => {
+const authMiddleware = (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
 
@@ -18,7 +18,10 @@ const authenticateToken = (req, res, next) => {
 
         const parts = authHeader.split(" ");
 
-        if (parts.length !== 2 || parts[0] !== "Bearer") {
+        if (
+            parts.length !== 2 ||
+            parts[0] !== "Bearer"
+        ) {
             return res.status(401).json({
                 message: "Format token tidak valid",
             });
@@ -36,7 +39,7 @@ const authenticateToken = (req, res, next) => {
         next();
 
     } catch (error) {
-        console.error("JWT Error:", error);
+        console.error(error);
 
         return res.status(401).json({
             message: "Token tidak valid atau sudah expired",
@@ -44,4 +47,4 @@ const authenticateToken = (req, res, next) => {
     }
 };
 
-module.exports = authenticateToken;
+module.exports = authMiddleware;
