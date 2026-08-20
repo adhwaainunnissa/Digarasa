@@ -16,18 +16,13 @@ const authMiddleware = (req, res, next) => {
             });
         }
 
-        const parts = authHeader.split(" ");
+        const [type, token] = authHeader.split(" ");
 
-        if (
-            parts.length !== 2 ||
-            parts[0] !== "Bearer"
-        ) {
+        if (type !== "Bearer" || !token) {
             return res.status(401).json({
                 message: "Format token tidak valid",
             });
         }
-
-        const token = parts[1];
 
         const decoded = jwt.verify(
             token,
@@ -39,7 +34,7 @@ const authMiddleware = (req, res, next) => {
         next();
 
     } catch (error) {
-        console.error(error);
+        console.error("JWT error:", error.message);
 
         return res.status(401).json({
             message: "Token tidak valid atau sudah expired",

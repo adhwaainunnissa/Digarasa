@@ -7,54 +7,34 @@ const api = axios.create({
     },
 });
 
-
-// ========================================
-// REQUEST INTERCEPTOR
-// ========================================
-
 api.interceptors.request.use(
     (config) => {
-
-        const token =
-            localStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
         if (token) {
-            config.headers.Authorization =
-                `Bearer ${token}`;
+            config.headers.Authorization = `Bearer ${token}`;
         }
 
         return config;
     },
-
     (error) => {
         return Promise.reject(error);
     }
 );
 
-
-// ========================================
-// RESPONSE INTERCEPTOR
-// ========================================
-
 api.interceptors.response.use(
-    (response) => response,
-
+    (response) => {
+        return response;
+    },
     (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
 
-        if (
-            error.response?.status === 401
-        ) {
-
-            localStorage.removeItem(
-                "token"
-            );
-
-            localStorage.removeItem(
-                "user"
-            );
-
-            window.location.href =
-                "/login";
+            // Jangan redirect kalau sedang di halaman login
+            if (window.location.pathname !== "/login") {
+                window.location.href = "/login";
+            }
         }
 
         return Promise.reject(error);

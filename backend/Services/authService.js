@@ -4,12 +4,7 @@ const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-if (!JWT_SECRET) {
-    throw new Error("JWT_SECRET belum diset di .env");
-}
-
 exports.login = async (username, password) => {
-
     const result = await db.query(
         `
         SELECT
@@ -18,26 +13,47 @@ exports.login = async (username, password) => {
             password,
             nama_lengkap,
             role
-        FROM "admin"
+        FROM admin
         WHERE username = $1
         LIMIT 1
         `,
         [username]
     );
 
+    console.log("USERNAME INPUT:", username);
+    console.log("JUMLAH ROW:", result.rows.length);
+
     if (result.rows.length === 0) {
-        throw new Error(
-            "Username atau password salah"
-        );
+        throw new Error("Username atau password salah");
     }
 
     const user = result.rows[0];
+
+    console.log(
+        "USERNAME DB:",
+        user.username
+    );
+
+    console.log(
+        "PASSWORD HASH PREFIX:",
+        String(user.password).substring(0, 4)
+    );
+
+    console.log(
+        "PASSWORD HASH LENGTH:",
+        String(user.password).length
+    );
 
     const passwordValid =
         await bcrypt.compare(
             password,
             user.password
         );
+
+    console.log(
+        "HASIL BCRYPT COMPARE:",
+        passwordValid
+    );
 
     if (!passwordValid) {
         throw new Error(
@@ -64,59 +80,4 @@ exports.login = async (username, password) => {
         user: userData,
         token,
     };
-};
-exports.changePassword = async (
-    userId,
-    currentPassword,
-    newPassword
-) => {
-
-    const result = await db.query(
-        `
-        SELECT
-            id,
-            password
-        FROM "admin"
-        WHERE id = $1
-        `,
-        [userId]
-    );
-
-    if (result.rows.length === 0) {
-        throw new Error(
-            "User tidak ditemukan"
-        );
-    }
-
-    const user = result.rows[0];
-
-    const valid =
-        await bcrypt.compare(
-            currentPassword,
-            user.password
-        );
-
-    if (!valid) {
-        throw new Error(
-            "Password lama salah"
-        );
-    }
-
-    const hashedPassword =
-        await bcrypt.hash(
-            newPassword,
-            10
-        );
-
-    await db.query(
-        `
-        UPDATE "admin"
-        SET password = $1
-        WHERE id = $2
-        `,
-        [
-            hashedPassword,
-            userId,
-        ]
-    );
 };

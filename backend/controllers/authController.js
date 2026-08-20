@@ -2,8 +2,8 @@ const authService = require("../services/authService");
 
 exports.login = async (req, res) => {
     try {
-        const { username, password } = req.body;
-
+        
+        const { username, password } = req.body || {};
         // Validasi input
         if (!username || !password) {
             return res.status(400).json({
