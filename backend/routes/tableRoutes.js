@@ -3,17 +3,11 @@ const express = require("express");
 const router = express.Router();
 
 const tableController = require("../controllers/tableController");
-const authenticateToken = require("../middleware/authMiddleware");
-const authorizeRole = require("../middleware/roleMiddleware");
-
-// ========================================
-// SEMUA ROUTE TABLE WAJIB LOGIN
-// ========================================
-
-router.use("/tables", authenticateToken);
+const roleMiddleware = require("../middleware/roleMiddleware");
 
 // ========================================
 // GET
+// Semua user yang sudah login boleh melihat
 // ========================================
 
 router.get(
@@ -36,33 +30,39 @@ router.get(
     tableController.getData
 );
 
+
 // ========================================
 // POST
+// ADMIN SAJA
 // ========================================
 
 router.post(
     "/tables/:table",
-    authorizeRole("admin"),
+    roleMiddleware("admin"),
     tableController.insertData
 );
 
+
 // ========================================
 // PUT
+// ADMIN SAJA
 // ========================================
 
 router.put(
     "/tables/:table/:id",
-    authorizeRole("admin"),
+    roleMiddleware("admin"),
     tableController.updateData
 );
 
+
 // ========================================
 // DELETE
+// ADMIN SAJA
 // ========================================
 
 router.delete(
     "/tables/:table/:id",
-    authorizeRole("admin"),
+    roleMiddleware("admin"),
     tableController.deleteData
 );
 
