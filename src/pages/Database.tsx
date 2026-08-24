@@ -869,7 +869,7 @@ function Database() {
 
     return (
 
-        <div className="flex min-h-screen bg-gray-100">
+        <div className="flex min-h-full min-w-0 bg-gray-100">
 
             {/* =================================
                 SIDEBAR TABLE

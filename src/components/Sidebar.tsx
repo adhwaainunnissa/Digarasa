@@ -12,6 +12,9 @@ import {
 } from "react-router-dom";
 
 export default function Sidebar() {
+const user = JSON.parse(
+    localStorage.getItem("user") || "null"
+);
 
     const navigate = useNavigate();
 
@@ -55,6 +58,15 @@ export default function Sidebar() {
             path: "/profile",
             icon: <FaUser />,
         },
+        ...(user?.role === "admin"
+    ? [
+        {
+            name: "Users",
+            path: "/users",
+            icon: <FaUser />,
+        },
+    ]
+    : []),
     ];
 
 

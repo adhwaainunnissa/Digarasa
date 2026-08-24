@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
-import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
+
 import Card from "../components/Card";
 
 import api from "../api/axios";
@@ -76,11 +75,7 @@ function Dashboard() {
     return (
         <div className="flex min-h-screen bg-gray-100">
 
-            {/* ====================================
-                SIDEBAR
-            ==================================== */}
-
-            <Sidebar />
+            
 
 
             {/* ====================================
@@ -88,10 +83,6 @@ function Dashboard() {
             ==================================== */}
 
             <div className="flex min-w-0 flex-1 flex-col">
-
-                {/* NAVBAR */}
-
-                <Navbar />
 
 
                 {/* CONTENT */}

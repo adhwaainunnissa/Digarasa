@@ -7,6 +7,12 @@ const authRoutes = require("./routes/authRoutes");
 const authMiddleware = require("./middleware/authMiddleware");
 
 const app = express();
+const adminRoutes = require("./routes/adminRoutes");
+
+app.use(
+    "/api/admin",
+    adminRoutes
+);
 
 app.use(
     cors({
