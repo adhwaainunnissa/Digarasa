@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import MainLayout from "./layouts/MainLayout";
 
 
+
 function Grafana() {
     return (
         <div className="p-8">
@@ -74,6 +75,10 @@ function App() {
                         <Route
                             path="/profile"
                             element={<Profile />}
+                        />
+                        <Route
+                            path="/users"
+                            element={<Users />}
                         />
 
                     </Route>

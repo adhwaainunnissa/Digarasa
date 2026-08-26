@@ -2,535 +2,913 @@ import { useEffect, useState } from "react";
 import api from "../api/axios";
 
 interface AdminUser {
-  id: number;
-  username: string;
-  nama_lengkap: string;
-  role: string;
-  created_at: string;
+    id: number;
+    username: string;
+    nama_lengkap: string;
+    role: string;
+    created_at: string;
 }
 
 function Users() {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
 
-  // Form tambah user
-  const [showForm, setShowForm] = useState(false);
-  const [nama, setNama] = useState("");
+    const [users, setUsers] =
+        useState<AdminUser[]>([]);
 
-  // =========================
-  // AMBIL DATA USER
-  // =========================
-  useEffect(() => {
-    loadUsers();
-  }, []);
+    const [loading, setLoading] =
+        useState(true);
 
-  const loadUsers = async () => {
-    try {
-      setLoading(true);
+    const [search, setSearch] =
+        useState("");
 
-      const response = await api.get("/admin/users");
+    const [error, setError] =
+        useState("");
 
-      setUsers(response.data);
-    } catch (error) {
-      console.error("Gagal mengambil user:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // ========================================
+    // MODAL
+    // ========================================
 
-  // =========================
-  // SEARCH USER
-  // =========================
-  const filteredUsers = users.filter(
-    (user) =>
-      user.username.toLowerCase().includes(search.toLowerCase()) ||
-      user.nama_lengkap.toLowerCase().includes(search.toLowerCase()) ||
-      user.role.toLowerCase().includes(search.toLowerCase())
-  );
+    const [showForm, setShowForm] =
+        useState(false);
 
-  // =========================
-  // STATISTIK
-  // =========================
-  const totalAdmin = users.filter(
-    (user) => user.role.toLowerCase() === "admin"
-  ).length;
+    const [saving, setSaving] =
+        useState(false);
 
-  const totalOperator = users.filter(
-    (user) => user.role.toLowerCase() === "operator"
-  ).length;
+    // ========================================
+    // FORM
+    // ========================================
 
-  // =========================
-  // STYLE ROLE
-  // =========================
-  const getRoleStyle = (role: string) => {
-    switch (role.toLowerCase()) {
-      case "admin":
-        return "bg-blue-100 text-blue-700";
+    const [username, setUsername] =
+        useState("");
 
-      case "operator":
-        return "bg-green-100 text-green-700";
+    const [nama, setNama] =
+        useState("");
 
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+    const [password, setPassword] =
+        useState("");
 
-  // =========================
-  // TAMBAH USER
-  // =========================
-  const handleAddUser = () => {
-    if (!nama.trim()) {
-      alert("Nama belum diisi!");
-      return;
-    }
+    const [role, setRole] =
+        useState("operator");
 
-    const newUser: AdminUser = {
-      id: Date.now(),
-      username: nama.toLowerCase().replace(/\s+/g, "."),
-      nama_lengkap: nama,
-      role: "operator",
-      created_at: new Date().toISOString(),
+
+    // ========================================
+    // LOAD USERS
+    // ========================================
+
+    useEffect(() => {
+
+        loadUsers();
+
+    }, []);
+
+
+    const loadUsers = async () => {
+
+        try {
+
+            setLoading(true);
+            setError("");
+
+            const response =
+                await api.get(
+                    "/admin/users"
+                );
+
+            setUsers(
+                response.data || []
+            );
+
+        } catch (error: any) {
+
+            console.error(
+                "Gagal mengambil user:",
+                error
+            );
+
+            setError(
+                error?.response?.data?.message ||
+                "Gagal mengambil data user."
+            );
+
+        } finally {
+
+            setLoading(false);
+
+        }
     };
 
-    setUsers((prevUsers) => [...prevUsers, newUser]);
 
-    setNama("");
-    setShowForm(false);
-  };
+    // ========================================
+    // SEARCH
+    // ========================================
 
-  // =========================
-  // HAPUS USER
-  // =========================
-  const handleDeleteUser = (id: number) => {
-    const confirmDelete = window.confirm(
-      "Apakah kamu yakin ingin menghapus user ini?"
-    );
+    const filteredUsers =
+        users.filter((user) => {
 
-    if (!confirmDelete) {
-      return;
-    }
+            const keyword =
+                search.toLowerCase();
 
-    setUsers((prevUsers) =>
-      prevUsers.filter((user) => user.id !== id)
-    );
-  };
+            return (
+                user.username
+                    .toLowerCase()
+                    .includes(keyword) ||
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-6 md:p-8">
+                user.nama_lengkap
+                    .toLowerCase()
+                    .includes(keyword) ||
 
-      {/* =========================
-          HEADER
-      ========================= */}
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                user.role
+                    .toLowerCase()
+                    .includes(keyword)
+            );
+        });
 
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">
-            User Management
-          </h1>
 
-          <p className="mt-1 text-sm text-gray-500">
-            Kelola pengguna sistem FASOP.
-          </p>
-        </div>
+    // ========================================
+    // STATISTIK
+    // ========================================
 
-        <button
-          onClick={() => setShowForm(true)}
-          className="rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-800"
-        >
-          + Tambah User
-        </button>
+    const totalAdmin =
+        users.filter(
+            (user) =>
+                user.role.toLowerCase() ===
+                "admin"
+        ).length;
 
-      </div>
+    const totalOperator =
+        users.filter(
+            (user) =>
+                user.role.toLowerCase() ===
+                "operator"
+        ).length;
 
-      {/* =========================
-          MODAL TAMBAH USER
-      ========================= */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
 
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+    // ========================================
+    // ROLE STYLE
+    // ========================================
 
-            {/* Modal Header */}
-            <div className="mb-6 flex items-center justify-between">
+    const getRoleStyle = (
+        role: string
+    ) => {
 
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">
-                  Tambah User
-                </h2>
+        switch (
+            role.toLowerCase()
+        ) {
 
-                <p className="mt-1 text-sm text-gray-500">
-                  Masukkan nama pengguna baru.
-                </p>
-              </div>
+            case "admin":
+                return "bg-blue-100 text-blue-700";
 
-              <button
-                onClick={() => {
-                  setShowForm(false);
-                  setNama("");
-                }}
-                className="text-2xl text-gray-400 transition hover:text-gray-700"
-              >
-                ×
-              </button>
+            case "operator":
+                return "bg-green-100 text-green-700";
+
+            default:
+                return "bg-gray-100 text-gray-700";
+
+        }
+    };
+
+
+    // ========================================
+    // RESET FORM
+    // ========================================
+
+    const resetForm = () => {
+
+        setUsername("");
+        setNama("");
+        setPassword("");
+        setRole("operator");
+
+    };
+
+
+    // ========================================
+    // OPEN FORM
+    // ========================================
+
+    const openAddForm = () => {
+
+        resetForm();
+
+        setShowForm(true);
+
+    };
+
+
+    // ========================================
+    // CLOSE FORM
+    // ========================================
+
+    const closeForm = () => {
+
+        if (saving) {
+            return;
+        }
+
+        resetForm();
+
+        setShowForm(false);
+
+    };
+
+
+    // ========================================
+    // ADD USER
+    // ========================================
+
+    const handleAddUser = async () => {
+
+        if (!username.trim()) {
+
+            alert(
+                "Username wajib diisi."
+            );
+
+            return;
+        }
+
+        if (!nama.trim()) {
+
+            alert(
+                "Nama lengkap wajib diisi."
+            );
+
+            return;
+        }
+
+        if (!password) {
+
+            alert(
+                "Password wajib diisi."
+            );
+
+            return;
+        }
+
+        if (password.length < 8) {
+
+            alert(
+                "Password minimal 8 karakter."
+            );
+
+            return;
+        }
+
+        try {
+
+            setSaving(true);
+
+            await api.post(
+                "/admin/users",
+                {
+                    username:
+                        username.trim(),
+
+                    nama_lengkap:
+                        nama.trim(),
+
+                    password,
+
+                    role,
+                }
+            );
+
+            alert(
+                "User berhasil ditambahkan."
+            );
+
+            closeForm();
+
+            await loadUsers();
+
+        } catch (error: any) {
+
+            console.error(
+                "Gagal menambahkan user:",
+                error
+            );
+
+            alert(
+                error?.response?.data?.message ||
+                "Gagal menambahkan user."
+            );
+
+        } finally {
+
+            setSaving(false);
+
+        }
+    };
+
+
+    // ========================================
+    // DELETE USER
+    // ========================================
+
+    const handleDeleteUser = async (
+        user: AdminUser
+    ) => {
+
+        /*
+         * Jangan menghapus akun yang sedang
+         * digunakan untuk login.
+         */
+
+        const currentUser =
+            JSON.parse(
+                localStorage.getItem(
+                    "user"
+                ) || "null"
+            );
+
+        if (
+            currentUser?.id === user.id
+        ) {
+
+            alert(
+                "Akun yang sedang digunakan tidak dapat dihapus."
+            );
+
+            return;
+        }
+
+
+        const confirmed =
+            window.confirm(
+                `Yakin ingin menghapus user "${user.username}"?`
+            );
+
+        if (!confirmed) {
+            return;
+        }
+
+
+        try {
+
+            await api.delete(
+                `/admin/users/${user.id}`
+            );
+
+            alert(
+                "User berhasil dihapus."
+            );
+
+            await loadUsers();
+
+        } catch (error: any) {
+
+            console.error(
+                "Gagal menghapus user:",
+                error
+            );
+
+            alert(
+                error?.response?.data?.message ||
+                "Gagal menghapus user."
+            );
+        }
+    };
+
+
+    return (
+        <div className="min-h-full bg-gray-50 p-6 md:p-8">
+
+            {/* ========================================
+                HEADER
+            ======================================== */}
+
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+                <div>
+
+                    <h1 className="text-3xl font-bold text-gray-800">
+                        User Management
+                    </h1>
+
+                    <p className="mt-1 text-sm text-gray-500">
+                        Kelola pengguna sistem FASOP.
+                    </p>
+
+                </div>
+
+
+                <button
+                    onClick={
+                        openAddForm
+                    }
+                    className="rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-800"
+                >
+                    + Tambah User
+                </button>
 
             </div>
 
-            {/* Input Nama */}
-            <div>
 
-              <label className="mb-2 block text-sm font-semibold text-gray-700">
-                Nama Lengkap
-              </label>
+            {/* ========================================
+                ERROR
+            ======================================== */}
 
-              <input
-                type="text"
-                value={nama}
-                onChange={(e) => setNama(e.target.value)}
-                placeholder="Masukkan nama lengkap"
-                autoFocus
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
+            {error && (
 
-            </div>
+                <div className="mb-6 rounded-lg bg-red-100 p-4 text-red-700">
+                    {error}
+                </div>
 
-            {/* Tombol */}
-            <div className="mt-6 flex gap-3">
+            )}
 
-              <button
-                onClick={() => {
-                  setShowForm(false);
-                  setNama("");
-                }}
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-3 font-semibold text-gray-600 transition hover:bg-gray-50"
-              >
-                Batal
-              </button>
 
-              <button
-                onClick={handleAddUser}
-                className="flex-1 rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white transition hover:bg-blue-800"
-              >
-                Simpan
-              </button>
+            {/* ========================================
+                MODAL TAMBAH USER
+            ======================================== */}
 
-            </div>
+            {showForm && (
 
-          </div>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
 
-        </div>
-      )}
+                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
 
-      {/* =========================
-          STATISTIK
-      ========================= */}
-      <div className="mb-8 grid grid-cols-1 gap-5 md:grid-cols-3">
+                        <div className="mb-6 flex items-center justify-between">
 
-        {/* Total User */}
-        <div className="rounded-xl bg-white p-6 shadow-sm">
+                            <div>
 
-          <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-gray-800">
+                                    Tambah User
+                                </h2>
 
-            <div>
-              <p className="text-sm text-gray-500">
-                Total User
-              </p>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Buat akun pengguna baru.
+                                </p>
 
-              <h2 className="mt-2 text-3xl font-bold text-gray-800">
-                {users.length}
-              </h2>
-            </div>
+                            </div>
 
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-xl">
-              👥
-            </div>
 
-          </div>
+                            <button
+                                onClick={
+                                    closeForm
+                                }
+                                className="text-2xl text-gray-400 hover:text-gray-700"
+                            >
+                                ×
+                            </button>
 
-        </div>
-
-        {/* Administrator */}
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-
-          <div className="flex items-center justify-between">
-
-            <div>
-              <p className="text-sm text-gray-500">
-                Administrator
-              </p>
-
-              <h2 className="mt-2 text-3xl font-bold text-blue-600">
-                {totalAdmin}
-              </h2>
-            </div>
-
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-xl">
-              🛡️
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* Operator */}
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-
-          <div className="flex items-center justify-between">
-
-            <div>
-              <p className="text-sm text-gray-500">
-                Operator
-              </p>
-
-              <h2 className="mt-2 text-3xl font-bold text-green-600">
-                {totalOperator}
-              </h2>
-            </div>
-
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-xl">
-              🖥️
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* =========================
-          USER TABLE
-      ========================= */}
-      <div className="rounded-xl bg-white shadow-sm">
-
-        {/* Table Header */}
-        <div className="flex flex-col gap-4 border-b p-5 md:flex-row md:items-center md:justify-between">
-
-          <div>
-            <h2 className="text-lg font-bold text-gray-800">
-              Daftar Pengguna
-            </h2>
-
-            <p className="text-sm text-gray-500">
-              Daftar pengguna yang terdaftar pada sistem.
-            </p>
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-
-            <input
-              type="text"
-              placeholder="Cari user..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pl-10 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 md:w-72"
-            />
-
-            <span className="absolute left-3 top-2.5 text-gray-400">
-              🔍
-            </span>
-
-          </div>
-
-        </div>
-
-        {/* =========================
-            LOADING
-        ========================= */}
-        {loading ? (
-
-          <div className="p-12 text-center">
-
-            <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
-
-            <p className="text-sm text-gray-500">
-              Memuat data user...
-            </p>
-
-          </div>
-
-        ) : filteredUsers.length === 0 ? (
-
-          /* =========================
-             EMPTY
-          ========================= */
-          <div className="p-12 text-center">
-
-            <div className="mb-3 text-5xl">
-              👤
-            </div>
-
-            <h3 className="font-semibold text-gray-700">
-              Tidak ada user
-            </h3>
-
-            <p className="mt-1 text-sm text-gray-500">
-              {search
-                ? "User yang kamu cari tidak ditemukan."
-                : "Belum ada user yang terdaftar."}
-            </p>
-
-          </div>
-
-        ) : (
-
-          /* =========================
-             TABLE
-          ========================= */
-          <div className="overflow-x-auto">
-
-            <table className="w-full border-collapse">
-
-              <thead>
-
-                <tr className="bg-gray-50 text-sm text-gray-600">
-
-                  <th className="border-b px-6 py-4 text-left font-semibold">
-                    #
-                  </th>
-
-                  <th className="border-b px-6 py-4 text-left font-semibold">
-                    User
-                  </th>
-
-                  <th className="border-b px-6 py-4 text-left font-semibold">
-                    Nama Lengkap
-                  </th>
-
-                  <th className="border-b px-6 py-4 text-left font-semibold">
-                    Role
-                  </th>
-
-                  <th className="border-b px-6 py-4 text-left font-semibold">
-                    Dibuat
-                  </th>
-
-                  <th className="border-b px-6 py-4 text-center font-semibold">
-                    Aksi
-                  </th>
-
-                </tr>
-
-              </thead>
-
-              <tbody>
-
-                {filteredUsers.map((user, index) => (
-
-                  <tr
-                    key={user.id}
-                    className="transition hover:bg-gray-50"
-                  >
-
-                    {/* Nomor */}
-                    <td className="border-b px-6 py-4 text-sm text-gray-500">
-                      {index + 1}
-                    </td>
-
-                    {/* User */}
-                    <td className="border-b px-6 py-4">
-
-                      <div className="flex items-center gap-3">
-
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
-                          {user.nama_lengkap
-                            .charAt(0)
-                            .toUpperCase()}
                         </div>
 
-                        <div>
 
-                          <p className="font-semibold text-gray-800">
-                            {user.username}
-                          </p>
+                        <div className="space-y-4">
 
-                          <p className="text-xs text-gray-400">
-                            ID #{user.id}
-                          </p>
+                            {/* Username */}
+
+                            <div>
+
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    Username
+                                </label>
+
+                                <input
+                                    type="text"
+                                    value={
+                                        username
+                                    }
+                                    onChange={(e) =>
+                                        setUsername(
+                                            e.target.value
+                                        )
+                                    }
+                                    placeholder="contoh: operator1"
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                />
+
+                            </div>
+
+
+                            {/* Nama */}
+
+                            <div>
+
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    Nama Lengkap
+                                </label>
+
+                                <input
+                                    type="text"
+                                    value={
+                                        nama
+                                    }
+                                    onChange={(e) =>
+                                        setNama(
+                                            e.target.value
+                                        )
+                                    }
+                                    placeholder="Masukkan nama lengkap"
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                />
+
+                            </div>
+
+
+                            {/* Password */}
+
+                            <div>
+
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    Password
+                                </label>
+
+                                <input
+                                    type="password"
+                                    value={
+                                        password
+                                    }
+                                    onChange={(e) =>
+                                        setPassword(
+                                            e.target.value
+                                        )
+                                    }
+                                    placeholder="Minimal 8 karakter"
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                />
+
+                            </div>
+
+
+                            {/* Role */}
+
+                            <div>
+
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    Role
+                                </label>
+
+                                <select
+                                    value={
+                                        role
+                                    }
+                                    onChange={(e) =>
+                                        setRole(
+                                            e.target.value
+                                        )
+                                    }
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                >
+                                    <option value="operator">
+                                        Operator
+                                    </option>
+
+                                    <option value="admin">
+                                        Admin
+                                    </option>
+                                </select>
+
+                            </div>
 
                         </div>
 
-                      </div>
 
-                    </td>
+                        <div className="mt-6 flex gap-3">
 
-                    {/* Nama */}
-                    <td className="border-b px-6 py-4 text-sm text-gray-700">
-                      {user.nama_lengkap}
-                    </td>
+                            <button
+                                onClick={
+                                    closeForm
+                                }
+                                disabled={
+                                    saving
+                                }
+                                className="flex-1 rounded-lg border border-gray-300 px-4 py-3 font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Batal
+                            </button>
 
-                    {/* Role */}
-                    <td className="border-b px-6 py-4">
 
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${getRoleStyle(
-                          user.role
-                        )}`}
-                      >
-                        {user.role}
-                      </span>
+                            <button
+                                onClick={
+                                    handleAddUser
+                                }
+                                disabled={
+                                    saving
+                                }
+                                className="flex-1 rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
+                            >
+                                {saving
+                                    ? "Menyimpan..."
+                                    : "Simpan"}
+                            </button>
 
-                    </td>
+                        </div>
 
-                    {/* Tanggal */}
-                    <td className="border-b px-6 py-4 text-sm text-gray-500">
+                    </div>
 
-                      {new Date(user.created_at).toLocaleString(
-                        "id-ID",
+                </div>
+
+            )}
+
+
+            {/* ========================================
+                STATISTIK
+            ======================================== */}
+
+            <div className="mb-8 grid grid-cols-1 gap-5 md:grid-cols-3">
+
+                <div className="rounded-xl bg-white p-6 shadow-sm">
+
+                    <p className="text-sm text-gray-500">
+                        Total User
+                    </p>
+
+                    <h2 className="mt-2 text-3xl font-bold text-gray-800">
                         {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
+                            users.length
                         }
-                      )}
+                    </h2>
 
-                    </td>
+                </div>
 
-                    {/* Aksi */}
-                    <td className="border-b px-6 py-4">
 
-                      <div className="flex justify-center gap-2">
+                <div className="rounded-xl bg-white p-6 shadow-sm">
 
-                        <button
-                          onClick={() =>
-                            alert(
-                              `User: ${user.nama_lengkap}`
-                            )
-                          }
-                          className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-600 transition hover:bg-blue-100"
-                        >
-                          👁️
-                        </button>
+                    <p className="text-sm text-gray-500">
+                        Administrator
+                    </p>
 
-                        <button
-                          onClick={() =>
-                            handleDeleteUser(user.id)
-                          }
-                          className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 transition hover:bg-red-100"
-                        >
-                          🗑️
-                        </button>
+                    <h2 className="mt-2 text-3xl font-bold text-blue-600">
+                        {
+                            totalAdmin
+                        }
+                    </h2>
 
-                      </div>
+                </div>
 
-                    </td>
 
-                  </tr>
+                <div className="rounded-xl bg-white p-6 shadow-sm">
 
-                ))}
+                    <p className="text-sm text-gray-500">
+                        Operator
+                    </p>
 
-              </tbody>
+                    <h2 className="mt-2 text-3xl font-bold text-green-600">
+                        {
+                            totalOperator
+                        }
+                    </h2>
 
-            </table>
+                </div>
 
-          </div>
+            </div>
 
-        )}
 
-      </div>
+            {/* ========================================
+                TABLE
+            ======================================== */}
 
-    </div>
-  );
+            <div className="rounded-xl bg-white shadow-sm">
+
+                <div className="flex flex-col gap-4 border-b p-5 md:flex-row md:items-center md:justify-between">
+
+                    <div>
+
+                        <h2 className="text-lg font-bold text-gray-800">
+                            Daftar Pengguna
+                        </h2>
+
+                        <p className="text-sm text-gray-500">
+                            Daftar pengguna yang terdaftar pada sistem.
+                        </p>
+
+                    </div>
+
+
+                    <div className="relative">
+
+                        <input
+                            type="text"
+                            placeholder="Cari user..."
+                            value={
+                                search
+                            }
+                            onChange={(e) =>
+                                setSearch(
+                                    e.target.value
+                                )
+                            }
+                            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pl-10 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 md:w-72"
+                        />
+
+                        <span className="absolute left-3 top-2.5 text-gray-400">
+                            🔍
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                {loading ? (
+
+                    <div className="p-12 text-center">
+
+                        <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
+
+                        <p className="text-sm text-gray-500">
+                            Memuat data user...
+                        </p>
+
+                    </div>
+
+                ) : filteredUsers.length === 0 ? (
+
+                    <div className="p-12 text-center">
+
+                        <div className="mb-3 text-5xl">
+                            👤
+                        </div>
+
+                        <h3 className="font-semibold text-gray-700">
+                            Tidak ada user
+                        </h3>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                            {search
+                                ? "User yang kamu cari tidak ditemukan."
+                                : "Belum ada user yang terdaftar."}
+                        </p>
+
+                    </div>
+
+                ) : (
+
+                    <div className="overflow-x-auto">
+
+                        <table className="w-full border-collapse">
+
+                            <thead>
+
+                                <tr className="bg-gray-50 text-sm text-gray-600">
+
+                                    <th className="border-b px-6 py-4 text-left font-semibold">
+                                        #
+                                    </th>
+
+                                    <th className="border-b px-6 py-4 text-left font-semibold">
+                                        User
+                                    </th>
+
+                                    <th className="border-b px-6 py-4 text-left font-semibold">
+                                        Nama Lengkap
+                                    </th>
+
+                                    <th className="border-b px-6 py-4 text-left font-semibold">
+                                        Role
+                                    </th>
+
+                                    <th className="border-b px-6 py-4 text-left font-semibold">
+                                        Dibuat
+                                    </th>
+
+                                    <th className="border-b px-6 py-4 text-center font-semibold">
+                                        Aksi
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {filteredUsers.map(
+                                    (
+                                        user,
+                                        index
+                                    ) => (
+
+                                        <tr
+                                            key={
+                                                user.id
+                                            }
+                                            className="transition hover:bg-gray-50"
+                                        >
+
+                                            <td className="border-b px-6 py-4 text-sm text-gray-500">
+                                                {
+                                                    index +
+                                                    1
+                                                }
+                                            </td>
+
+
+                                            <td className="border-b px-6 py-4">
+
+                                                <div className="flex items-center gap-3">
+
+                                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
+
+                                                        {(
+                                                            user.nama_lengkap ||
+                                                            user.username ||
+                                                            "U"
+                                                        )
+                                                            .charAt(
+                                                                0
+                                                            )
+                                                            .toUpperCase()}
+
+                                                    </div>
+
+
+                                                    <div>
+
+                                                        <p className="font-semibold text-gray-800">
+                                                            {
+                                                                user.username
+                                                            }
+                                                        </p>
+
+                                                        <p className="text-xs text-gray-400">
+                                                            ID #
+                                                            {
+                                                                user.id
+                                                            }
+                                                        </p>
+
+                                                    </div>
+
+                                                </div>
+
+                                            </td>
+
+
+                                            <td className="border-b px-6 py-4 text-sm text-gray-700">
+                                                {
+                                                    user.nama_lengkap
+                                                }
+                                            </td>
+
+
+                                            <td className="border-b px-6 py-4">
+
+                                                <span
+                                                    className={`rounded-full px-3 py-1 text-xs font-semibold ${getRoleStyle(
+                                                        user.role
+                                                    )}`}
+                                                >
+                                                    {
+                                                        user.role
+                                                    }
+                                                </span>
+
+                                            </td>
+
+
+                                            <td className="border-b px-6 py-4 text-sm text-gray-500">
+
+                                                {new Date(
+                                                    user.created_at
+                                                ).toLocaleString(
+                                                    "id-ID",
+                                                    {
+                                                        day: "2-digit",
+                                                        month: "short",
+                                                        year: "numeric",
+                                                    }
+                                                )}
+
+                                            </td>
+
+
+                                            <td className="border-b px-6 py-4">
+
+                                                <div className="flex justify-center">
+
+                                                    <button
+                                                        onClick={() =>
+                                                            handleDeleteUser(
+                                                                user
+                                                            )
+                                                        }
+                                                        className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 transition hover:bg-red-100"
+                                                    >
+                                                        🗑️
+                                                    </button>
+
+                                                </div>
+
+                                            </td>
+
+                                        </tr>
+
+                                    )
+                                )}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                )}
+
+            </div>
+
+        </div>
+    );
 }
 
 export default Users;
