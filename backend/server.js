@@ -9,6 +9,7 @@ const authMiddleware = require("./middleware/authMiddleware");
 const app = express();
 const adminRoutes = require("./routes/adminRoutes");
 
+app.use(express.json());
 app.use(
     "/api/admin",
     adminRoutes
@@ -20,7 +21,7 @@ app.use(
     })
 );
 
-app.use(express.json());
+
 
 app.get("/", (req, res) => {
     res.send("Backend Digarasa berjalan 🚀");

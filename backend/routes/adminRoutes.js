@@ -11,9 +11,9 @@ const authenticateToken =
 const roleMiddleware =
     require("../middleware/roleMiddleware");
 
+
 // ========================================
 // GET USERS
-// ADMIN SAJA
 // ========================================
 
 router.get(
@@ -22,5 +22,30 @@ router.get(
     roleMiddleware("admin"),
     adminController.getUsers
 );
+
+
+// ========================================
+// CREATE USER
+// ========================================
+
+router.post(
+    "/users",
+    authenticateToken,
+    roleMiddleware("admin"),
+    adminController.createUser
+);
+
+
+// ========================================
+// DELETE USER
+// ========================================
+
+router.delete(
+    "/users/:id",
+    authenticateToken,
+    roleMiddleware("admin"),
+    adminController.deleteUser
+);
+
 
 module.exports = router;
