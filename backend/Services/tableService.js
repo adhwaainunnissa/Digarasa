@@ -1,20 +1,26 @@
 const db = require("../config/db");
-
+const {
+    allowedTables,
+} = require("../config/tableConfig");
 // ========================================
 // GET SEMUA TABEL
 // ========================================
 
 exports.getTables = async () => {
-    const result = await db.query(`
+
+    const result = await db.query(
+        `
         SELECT table_name
         FROM information_schema.tables
         WHERE table_schema = 'public'
+          AND table_name = ANY($1::text[])
         ORDER BY table_name
-    `);
+        `,
+        [allowedTables]
+    );
 
     return result.rows;
 };
-
 
 // ========================================
 // GET SCHEMA TABEL
