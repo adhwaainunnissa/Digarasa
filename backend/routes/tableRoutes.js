@@ -4,6 +4,7 @@ const router = express.Router();
 
 const tableController = require("../controllers/tableController");
 const roleMiddleware = require("../middleware/roleMiddleware");
+const tablePermissionMiddleware = require("../middleware/tablePermissionMiddleware");
 
 // ========================================
 // GET
@@ -39,8 +40,10 @@ router.get(
 router.post(
     "/tables/:table",
     roleMiddleware("admin"),
+    tablePermissionMiddleware,
     tableController.insertData
 );
+
 
 
 // ========================================
@@ -51,6 +54,7 @@ router.post(
 router.put(
     "/tables/:table/:id",
     roleMiddleware("admin"),
+    tablePermissionMiddleware,
     tableController.updateData
 );
 
@@ -63,6 +67,7 @@ router.put(
 router.delete(
     "/tables/:table/:id",
     roleMiddleware("admin"),
+    tablePermissionMiddleware,
     tableController.deleteData
 );
 

@@ -1,5 +1,5 @@
 const tableService = require("../services/tableService");
-
+const auditService = require("../services/auditService");
 // ========================================
 // GET SEMUA TABEL
 // ========================================
@@ -109,6 +109,18 @@ exports.insertData = async (req, res) => {
             data
         );
 
+        await auditService.createLog({
+             userId: req.user.id,
+                username: req.user.username,
+                action: "CREATE",
+                tableName: table,
+                recordId:
+                    result?.id ??
+                    result?.no ??
+                    null,
+                details: result,
+            });
+
         res.status(201).json({
             message: "Data berhasil ditambahkan",
             data: result,
@@ -139,6 +151,17 @@ exports.updateData = async (req, res) => {
             id,
             data
         );
+            await auditService.createLog({
+                userId: req.user.id,
+                username: req.user.username,
+                action: "UPDATE",
+                tableName: table,
+                recordId: id,
+                details: {
+                    changes: data,
+                    result: result,
+                },
+            });
 
         res.json({
             message: "Data berhasil diperbarui",
@@ -168,6 +191,15 @@ exports.deleteData = async (req, res) => {
             table,
             id
         );
+
+                await auditService.createLog({
+            userId: req.user.id,
+            username: req.user.username,
+            action: "DELETE",
+            tableName: table,
+            recordId: id,
+            details: result,
+        });
 
         res.json({
             message: "Data berhasil dihapus",
