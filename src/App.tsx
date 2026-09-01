@@ -12,7 +12,7 @@ import Database from "./pages/Database";
 import ProtectedRoute from "./pages/ProtectedRoute";
 import Profile from "./pages/Profile";
 import MainLayout from "./layouts/MainLayout";
-
+import Skema from "./pages/Skema";
 
 function Grafana() {
 
@@ -140,6 +140,11 @@ function App() {
                             element={<Database />}
                         />
 
+                        <Route
+                            path="/skema"
+                            element={<Skema />}
+                        />
+                        
                         <Route
                             path="/grafana"
                             element={<Grafana />}

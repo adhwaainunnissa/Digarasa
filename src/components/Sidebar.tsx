@@ -49,6 +49,11 @@ const user = JSON.parse(
             icon: <FaDatabase />,
         },
         {
+            name: "Skema",
+            path: "/skema",
+            icon: <FaDatabase />,
+        },
+        {
             name: "Grafana",
             path: "/grafana",
             icon: <FaChartLine />,

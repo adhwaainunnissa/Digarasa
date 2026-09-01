@@ -1,10 +1,10 @@
 const { Pool } = require("pg");
-
 require("dotenv").config();
 
-console.log(process.env.DB_HOST);
-console.log(process.env.DB_PORT);
-console.log(process.env.DB_NAME);
+console.log("DB_HOST:", process.env.DB_HOST);
+console.log("DB_PORT:", process.env.DB_PORT);
+console.log("DB_NAME:", process.env.DB_NAME);
+console.log("DB_USER:", process.env.DB_USER);
 
 const pool = new Pool({
     host: process.env.DB_HOST,
@@ -13,18 +13,15 @@ const pool = new Pool({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
 
-    // Batasi jumlah koneksi dari aplikasi
-    max: 10,
-
-    // Tutup koneksi idle setelah 30 detik
+    max: 5,
     idleTimeoutMillis: 30000,
-
-    // Gagal cepat kalau database penuh/tidak bisa diakses
     connectionTimeoutMillis: 5000,
 });
 
 pool.on("connect", () => {
-    console.log("✅ PostgreSQL client terhubung");
+    console.log(
+        "✅ PostgreSQL client terhubung"
+    );
 });
 
 pool.on("error", (err) => {
@@ -33,19 +30,5 @@ pool.on("error", (err) => {
         err.message
     );
 });
-
-// Tes koneksi tanpa menahan client
-pool.query("SELECT 1")
-    .then(() => {
-        console.log(
-            "✅ Berhasil terhubung ke PostgreSQL"
-        );
-    })
-    .catch((err) => {
-        console.error(
-            "❌ Gagal terhubung ke PostgreSQL"
-        );
-        console.error(err.message);
-    });
 
 module.exports = pool;
