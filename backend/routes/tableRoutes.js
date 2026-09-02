@@ -31,6 +31,12 @@ router.get(
 );
 
 router.get(
+    "/skema/mt",
+    tableAccessMiddleware,
+    tableController.getDataMT
+);
+
+router.get(
     "/tables/:table",
     tableAccessMiddleware,
     tableController.getData

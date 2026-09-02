@@ -303,6 +303,22 @@ exports.getData = async (
         dataValues
     );
 
+    exports.getDataMT = async () => {
+    const result = await db.query(`
+        SELECT
+            sm.no,
+            dp.gi,
+            dp.keterangan,
+            dp.merek,
+            dp.tipe
+        FROM "SKEMA_MT" sm
+        LEFT JOIN "DEVICE_PROSIS" dp
+            ON sm.no = dp.no
+        ORDER BY sm.no
+    `);
+
+    return result.rows;
+};
 
     // ------------------------------------
     // TOTAL PAGES
