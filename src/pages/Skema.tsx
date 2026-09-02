@@ -27,7 +27,10 @@ interface Subsistem {
 interface SkemaMT {
     no: number;
     id_skema: number;
-    jenis: string | null;
+    gi: string | null;
+    keterangan: string | null;
+    merek: string | null;
+    tipe: string | null;
 }
 
 interface SkemaRele {
@@ -1610,53 +1613,71 @@ function Skema() {
 
                                                 <table className="w-full">
 
-                                                    <thead>
+                                                 <thead>
+                                                <tr className="bg-gray-50">
+                                                        <th className="border-b p-3 text-left text-xs">
+                                                         No
+                                                        </th>
 
-                                                        <tr className="bg-gray-50">
+                                                        <th className="border-b p-3 text-left text-xs">
+                                                        GI
+                                                        </th>
 
-                                                            <th className="border-b p-3 text-left text-xs">
-                                                                No
-                                                            </th>
+                                                        <th className="border-b p-3 text-left text-xs">
+                                                          Keterangan
+                                                        </th>
 
-                                                            <th className="border-b p-3 text-left text-xs">
-                                                                Jenis
-                                                            </th>
+                                                         <th className="border-b p-3 text-left text-xs">
+                                                             Merek
+                                                         </th>
 
-                                                        </tr>
+                                                         <th className="border-b p-3 text-left text-xs">
+                                                          Tipe
+                                                         </th>
 
-                                                    </thead>
+                                                         <th className="border-b p-3 text-center text-xs">
+                                                          Aksi
+                                                         </th>
+                                                  </tr>
+                                            </thead>
 
 
-                                                    <tbody>
+                                        <tbody>
+                                            
+                                         {skemaMT.map(
+                                            (item) => (
+                                                <tr key={item.no}>
 
-                                                        {skemaMT.map(
-                                                            (
-                                                                item
-                                                            ) => (
+                                                     <td className="border-b p-3 text-sm">
+                                                         {item.no}
+                                                    </td>
 
-                                                                <tr
-                                                                    key={
-                                                                        item.no
-                                                                    }
-                                                                >
+                                                    <td className="border-b p-3 text-sm">
+                                                         {item.gi || "-"}
+                                                    </td>
 
-                                                                    <td className="border-b p-3 text-sm">
-                                                                        {
-                                                                            item.no
-                                                                        }
-                                                                    </td>
+                                                    <td className="border-b p-3 text-sm">
+                                                            {item.keterangan || "-"}
+                                                    </td>
 
-                                                                    <td className="border-b p-3 text-sm">
-                                                                        {
-                                                                            item.jenis ||
-                                                                            "-"
-                                                                        }
-                                                                    </td>
+                                                    <td className="border-b p-3 text-sm">
+                                                         {item.merek || "-"}
+                                                     </td>
 
-                                                                </tr>
+                                                    <td className="border-b p-3 text-sm">
+                                                          {item.tipe || "-"}
+                                                     </td>
 
-                                                            )
-                                                        )}
+                                                     <td className="border-b p-3 text-center">
+
+                                                   <button
+                                                        className="rounded bg-blue-600 px-3 py-1 text-xs text-white"
+                                                        > Aksi
+                                                 </button>
+                                             </td>
+                                            </tr>
+                                          )
+    )}
 
                                                     </tbody>
 
