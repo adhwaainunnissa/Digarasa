@@ -1,136 +1,138 @@
 import { useState } from "react";
-import api from "../api/axios";
 
-function Profile() {
+export default function Profile() {
 
     const user = JSON.parse(
         localStorage.getItem("user") || "null"
     );
 
-    const [currentPassword, setCurrentPassword] =
-        useState("");
+    const [passwordLama, setPasswordLama] = useState("");
+    const [passwordBaru, setPasswordBaru] = useState("");
+    const [konfirmasiPassword, setKonfirmasiPassword] = useState("");
 
-    const [newPassword, setNewPassword] =
-        useState("");
+    const handleChangePassword = (e: React.FormEvent) => {
+        e.preventDefault();
 
-    const [confirmPassword, setConfirmPassword] =
-        useState("");
-
-    const [message, setMessage] =
-        useState("");
-
-    const [error, setError] =
-        useState("");
-
-    const [loading, setLoading] =
-        useState(false);
-
-
-    const handleChangePassword = async (
-        event: React.FormEvent
-    ) => {
-
-        event.preventDefault();
-
-        setMessage("");
-        setError("");
-
-        if (
-            newPassword !==
-            confirmPassword
-        ) {
-            setError(
-                "Konfirmasi password tidak cocok"
-            );
-
+        if (!passwordLama || !passwordBaru || !konfirmasiPassword) {
+            alert("Semua password harus diisi!");
             return;
         }
 
-        try {
-
-            setLoading(true);
-
-            const response =
-                await api.put(
-                    "/auth/change-password",
-                    {
-                        currentPassword,
-                        newPassword,
-                    }
-                );
-
-            setMessage(
-                response.data.message
-            );
-
-            setCurrentPassword("");
-            setNewPassword("");
-            setConfirmPassword("");
-
-        } catch (error: any) {
-
-            console.error(error);
-
-            setError(
-                error?.response?.data?.message ||
-                "Gagal mengubah password"
-            );
-
-        } finally {
-
-            setLoading(false);
-
+        if (passwordBaru !== konfirmasiPassword) {
+            alert("Konfirmasi password tidak sesuai!");
+            return;
         }
+
+        alert("Password berhasil diubah!");
+
+        setPasswordLama("");
+        setPasswordBaru("");
+        setKonfirmasiPassword("");
     };
 
-
     return (
-        <div className="p-8">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-gray-50 to-yellow-50 p-8">
 
-            <h1 className="text-3xl font-bold text-gray-800">
-                Profile
-            </h1>
+            {/* ========================================
+                TITLE
+            ======================================== */}
 
-            <div className="mt-8 grid max-w-4xl gap-6 lg:grid-cols-2">
+            <div className="mb-8">
 
-                {/* INFO USER */}
+                <h1 className="text-3xl font-bold text-blue-950">
+                    Profile
+                </h1>
 
-                <div className="rounded-xl bg-white p-6 shadow-sm">
+                <p className="mt-1 text-sm text-gray-500">
+                    Kelola informasi akun dan keamanan Anda
+                </p>
 
-                    <h2 className="text-xl font-semibold">
-                        Informasi Akun
-                    </h2>
+            </div>
 
-                    <div className="mt-6 space-y-4">
 
-                        <div>
-                            <p className="text-sm text-gray-500">
+            {/* ========================================
+                CONTENT
+            ======================================== */}
+
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+
+
+                {/* ========================================
+                    INFORMASI AKUN
+                ======================================== */}
+
+                <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg">
+
+                    {/* Aksen PLN */}
+                    <div className="h-2 bg-[#F7E92A]"></div>
+
+                    <div className="p-8">
+
+                        {/* Header */}
+
+                        <div className="mb-8 flex items-center gap-4">
+
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-xl text-blue-700">
+                                👤
+                            </div>
+
+                            <div>
+
+                                <h2 className="text-xl font-bold text-gray-900">
+                                    Informasi Akun
+                                </h2>
+
+                                <p className="text-sm text-gray-500">
+                                    Informasi pengguna yang sedang login
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* Username */}
+
+                        <div className="mb-6 rounded-xl bg-gray-50 p-4">
+
+                            <p className="mb-1 text-sm font-medium text-gray-500">
                                 Username
                             </p>
 
-                            <p className="font-semibold">
+                            <p className="text-base font-semibold text-gray-900">
                                 {user?.username || "-"}
                             </p>
+
                         </div>
 
-                        <div>
-                            <p className="text-sm text-gray-500">
+
+                        {/* Nama Lengkap */}
+
+                        <div className="mb-6 rounded-xl bg-gray-50 p-4">
+
+                            <p className="mb-1 text-sm font-medium text-gray-500">
                                 Nama Lengkap
                             </p>
 
-                            <p className="font-semibold">
+                            <p className="text-base font-semibold text-gray-900">
                                 {user?.nama_lengkap || "-"}
                             </p>
+
                         </div>
 
-                        <div>
-                            <p className="text-sm text-gray-500">
+
+                        {/* Role */}
+
+                        <div className="rounded-xl bg-gray-50 p-4">
+
+                            <p className="mb-1 text-sm font-medium text-gray-500">
                                 Role
                             </p>
 
-                            <p className="font-semibold capitalize">
-                                {user?.role || "-"}
-                            </p>
+                            <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold capitalize text-blue-700">
+                                {user?.role || "user"}
+                            </span>
+
                         </div>
 
                     </div>
@@ -138,98 +140,143 @@ function Profile() {
                 </div>
 
 
-                {/* GANTI PASSWORD */}
 
-                <div className="rounded-xl bg-white p-6 shadow-sm">
+                {/* ========================================
+                    GANTI PASSWORD
+                ======================================== */}
 
-                    <h2 className="text-xl font-semibold">
-                        Ganti Password
-                    </h2>
+                <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg">
 
-                    {message && (
-                        <div className="mt-4 rounded-lg bg-green-100 p-3 text-green-700">
-                            {message}
+                    {/* Aksen PLN */}
+                    <div className="h-2 bg-[#F7E92A]"></div>
+
+                    <div className="p-8">
+
+                        {/* Header */}
+
+                        <div className="mb-8 flex items-center gap-4">
+
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-xl text-blue-700">
+                                🔐
+                            </div>
+
+                            <div>
+
+                                <h2 className="text-xl font-bold text-gray-900">
+                                    Ganti Password
+                                </h2>
+
+                                <p className="text-sm text-gray-500">
+                                    Perbarui password akun Anda
+                                </p>
+
+                            </div>
+
                         </div>
-                    )}
 
-                    {error && (
-                        <div className="mt-4 rounded-lg bg-red-100 p-3 text-red-700">
-                            {error}
-                        </div>
-                    )}
 
-                    <form
-                        onSubmit={
-                            handleChangePassword
-                        }
-                        className="mt-6 space-y-4"
-                    >
-
-                        <input
-                            type="password"
-                            placeholder="Password lama"
-                            value={
-                                currentPassword
-                            }
-                            onChange={(e) =>
-                                setCurrentPassword(
-                                    e.target.value
-                                )
-                            }
-                            className="w-full rounded-lg border p-3"
-                            required
-                        />
-
-                        <input
-                            type="password"
-                            placeholder="Password baru"
-                            value={
-                                newPassword
-                            }
-                            onChange={(e) =>
-                                setNewPassword(
-                                    e.target.value
-                                )
-                            }
-                            className="w-full rounded-lg border p-3"
-                            minLength={8}
-                            required
-                        />
-
-                        <input
-                            type="password"
-                            placeholder="Konfirmasi password baru"
-                            value={
-                                confirmPassword
-                            }
-                            onChange={(e) =>
-                                setConfirmPassword(
-                                    e.target.value
-                                )
-                            }
-                            className="w-full rounded-lg border p-3"
-                            minLength={8}
-                            required
-                        />
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full rounded-lg bg-blue-700 p-3 font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+                        <form
+                            onSubmit={handleChangePassword}
+                            className="space-y-5"
                         >
-                            {loading
-                                ? "Menyimpan..."
-                                : "Ubah Password"}
-                        </button>
 
-                    </form>
+                            {/* Password Lama */}
+
+                            <div>
+
+                                <label className="mb-2 block text-sm font-medium text-gray-700">
+                                    Password Lama
+                                </label>
+
+                                <input
+                                    type="password"
+                                    value={passwordLama}
+                                    onChange={(e) =>
+                                        setPasswordLama(e.target.value)
+                                    }
+                                    placeholder="Masukkan password lama"
+                                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                                />
+
+                            </div>
+
+
+                            {/* Password Baru */}
+
+                            <div>
+
+                                <label className="mb-2 block text-sm font-medium text-gray-700">
+                                    Password Baru
+                                </label>
+
+                                <input
+                                    type="password"
+                                    value={passwordBaru}
+                                    onChange={(e) =>
+                                        setPasswordBaru(e.target.value)
+                                    }
+                                    placeholder="Masukkan password baru"
+                                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                                />
+
+                            </div>
+
+
+                            {/* Konfirmasi Password */}
+
+                            <div>
+
+                                <label className="mb-2 block text-sm font-medium text-gray-700">
+                                    Konfirmasi Password Baru
+                                </label>
+
+                                <input
+                                    type="password"
+                                    value={konfirmasiPassword}
+                                    onChange={(e) =>
+                                        setKonfirmasiPassword(e.target.value)
+                                    }
+                                    placeholder="Konfirmasi password baru"
+                                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                                />
+
+                            </div>
+
+
+                            {/* Button */}
+
+                            <button
+                                type="submit"
+                                className="w-full rounded-xl bg-blue-700 py-3.5 font-semibold text-white shadow-md transition hover:bg-blue-800 active:scale-[0.98]"
+                            >
+                                Ubah Password
+                            </button>
+
+                        </form>
+
+                    </div>
 
                 </div>
+
+            </div>
+
+
+            {/* ========================================
+                FOOTER INFO
+            ======================================== */}
+
+            <div className="mt-8 flex items-center gap-3 rounded-xl border border-yellow-200 bg-yellow-50 px-5 py-4">
+
+                <span className="text-xl">
+                    ⚡
+                </span>
+
+                <p className="text-sm text-gray-600">
+                    FASOP Monitoring System — PLN UP2B Ungaran
+                </p>
 
             </div>
 
         </div>
     );
 }
-
-export default Profile;

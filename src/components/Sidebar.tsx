@@ -12,11 +12,13 @@ import {
 } from "react-router-dom";
 
 export default function Sidebar() {
-const user = JSON.parse(
-    localStorage.getItem("user") || "null"
-);
+
+    const user = JSON.parse(
+        localStorage.getItem("user") || "null"
+    );
 
     const navigate = useNavigate();
+
 
     // ========================================
     // LOGOUT
@@ -63,15 +65,16 @@ const user = JSON.parse(
             path: "/profile",
             icon: <FaUser />,
         },
+
         ...(user?.role === "admin"
-    ? [
-        {
-            name: "Users",
-            path: "/users",
-            icon: <FaUser />,
-        },
-    ]
-    : []),
+            ? [
+                {
+                    name: "Users",
+                    path: "/users",
+                    icon: <FaUser />,
+                },
+            ]
+            : []),
     ];
 
 
@@ -116,7 +119,7 @@ const user = JSON.parse(
                                     transition
                                     ${
                                         isActive
-                                            ? "bg-white text-blue-700"
+                                            ? "bg-[#F7E92A] text-blue-700"
                                             : "text-white hover:bg-blue-600"
                                     }
                                     `

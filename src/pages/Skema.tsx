@@ -909,12 +909,82 @@ function Skema() {
     return (
 
         <div className="min-h-full bg-gray-50 p-6 md:p-8">
+            <style>{`
+                @keyframes fadeInDown {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateY(14px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
+                @keyframes scaleIn {
+                    from { opacity: 0; transform: scale(0.98); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+
+                .fasop-fade-down {
+                    animation: fadeInDown 0.45s ease-out both;
+                }
+
+                .fasop-fade-up {
+                    animation: fadeInUp 0.5s ease-out both;
+                }
+
+                .fasop-scale-in {
+                    animation: scaleIn 0.35s ease-out both;
+                }
+
+                .fasop-row {
+                    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+                }
+
+                .fasop-row:hover {
+                    transform: translateY(-1px);
+                    box-shadow: inset 3px 0 0 rgb(37 99 235 / 0.7);
+                }
+
+                .fasop-button {
+                    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+                }
+
+                .fasop-button:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 5px 12px rgb(15 23 42 / 0.10);
+                }
+
+                .fasop-button:active {
+                    transform: scale(0.96);
+                }
+
+                .fasop-badge {
+                    transition: transform 0.2s ease;
+                }
+
+                .fasop-badge:hover {
+                    transform: scale(1.04);
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .fasop-fade-down,
+                    .fasop-fade-up,
+                    .fasop-scale-in,
+                    .fasop-row,
+                    .fasop-button,
+                    .fasop-badge {
+                        animation: none !important;
+                        transition: none !important;
+                    }
+                }
+            `}</style>
 
             {/* ========================================
                 HEADER
             ======================================== */}
 
-            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="fasop-fade-down mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
                 <div>
 
@@ -934,7 +1004,7 @@ function Skema() {
 
                     <button
                         onClick={openAddForm}
-                        className="rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-800"
+                        className="fasop-button rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white shadow-sm hover:bg-blue-800"
                     >
                         + Tambah Skema
                     </button>
@@ -987,7 +1057,7 @@ function Skema() {
 
                 <button
                     onClick={handleSearch}
-                    className="rounded-lg bg-gray-800 px-5 py-3 font-semibold text-white hover:bg-gray-900"
+                    className="fasop-button rounded-lg border border-blue-600 bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
                 >
                     Cari
                 </button>
@@ -996,7 +1066,7 @@ function Skema() {
                     onClick={
                         handleResetSearch
                     }
-                    className="rounded-lg border bg-white px-5 py-3 font-semibold text-gray-700 hover:bg-gray-50"
+                    className="fasop-button rounded-lg border bg-white px-5 py-3 font-semibold text-gray-700 hover:bg-gray-50"
                 >
                     Reset
                 </button>
@@ -1008,15 +1078,15 @@ function Skema() {
                 MAIN GRID
             ======================================== */}
 
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+            <div className="fasop-fade-up grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_1fr]">
 
                 {/* ====================================
                     LIST SKEMA
                 ==================================== */}
 
-                <div className="xl:col-span-3">
+                <div className="min-w-0">
 
-                    <div className="overflow-hidden rounded-xl bg-white shadow-sm">
+                    <div className="fasop-scale-in overflow-hidden rounded-xl bg-white shadow-sm">
 
                         <div className="border-b p-5">
 
@@ -1054,33 +1124,33 @@ function Skema() {
 
                         ) : (
 
-                            <div className="overflow-x-auto">
+                            <div className="w-full overflow-x-auto">
 
-                                <table className="w-full">
+                                <table className="w-full table-fixed">
 
                                     <thead>
 
                                         <tr className="bg-gray-50">
 
-                                            <th className="border-b px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                                            <th className="w-[6%] whitespace-nowrap border-b px-3 py-3 text-left text-xs font-semibold text-gray-600">
                                                 ID
                                             </th>
 
-                                            <th className="border-b px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                                            <th className="w-[40%] whitespace-nowrap border-b px-4 py-3 text-left text-xs font-semibold text-gray-600">
                                                 Skema
                                             </th>
 
-                                            <th className="border-b px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                                            <th className="w-[22%] whitespace-nowrap border-b px-4 py-3 text-left text-xs font-semibold text-gray-600">
                                                 Subsistem
                                             </th>
 
-                                            <th className="border-b px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                                            <th className="w-[16%] whitespace-nowrap border-b px-4 py-3 text-left text-xs font-semibold text-gray-600">
                                                 Status
                                             </th>
 
                                             {isAdmin && (
 
-                                                <th className="border-b px-4 py-3 text-center text-xs font-semibold text-gray-600">
+                                                <th className="w-[16%] whitespace-nowrap border-b px-3 py-3 text-center text-xs font-semibold text-gray-600">
                                                     Aksi
                                                 </th>
 
@@ -1107,7 +1177,7 @@ function Skema() {
                                                             item
                                                         )
                                                     }
-                                                    className={`cursor-pointer hover:bg-blue-50 ${
+                                                    className={`fasop-row cursor-pointer hover:bg-blue-50 ${
                                                         selectedSkema?.id_skema ===
                                                         item.id_skema
                                                             ? "bg-blue-50"
@@ -1115,7 +1185,7 @@ function Skema() {
                                                     }`}
                                                 >
 
-                                                    <td className="border-b px-4 py-4 text-sm font-medium text-gray-500">
+                                                    <td className="border-b px-3 py-4 text-sm font-medium text-gray-500">
                                                         {
                                                             item.id_skema
                                                         }
@@ -1124,7 +1194,7 @@ function Skema() {
 
                                                     <td className="border-b px-4 py-4">
 
-                                                        <p className="max-w-xs font-medium text-gray-800">
+                                                        <p className="font-medium leading-6 text-gray-800">
                                                             {
                                                                 item.skema
                                                             }
@@ -1137,7 +1207,7 @@ function Skema() {
 
                                                         {item.subsistem ? (
 
-                                                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                                                            <span className="inline-block whitespace-nowrap rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
                                                                 {
                                                                     item.subsistem
                                                                 }
@@ -1157,7 +1227,7 @@ function Skema() {
                                                     <td className="border-b px-4 py-4">
 
                                                         <span
-                                                            className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusStyle(
+                                                            className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${getStatusStyle(
                                                                 item.aktif
                                                             )}`}
                                                         >
@@ -1174,7 +1244,7 @@ function Skema() {
                                                     {isAdmin && (
 
                                                         <td
-                                                            className="border-b px-4 py-4"
+                                                            className="whitespace-nowrap border-b px-3 py-5 align-middle"
                                                             onClick={(
                                                                 e
                                                             ) =>
@@ -1182,7 +1252,7 @@ function Skema() {
                                                             }
                                                         >
 
-                                                            <div className="flex justify-center gap-2">
+                                                            <div className="flex items-center justify-center gap-2">
 
                                                                 <button
                                                                     onClick={() =>
@@ -1190,7 +1260,7 @@ function Skema() {
                                                                             item
                                                                         )
                                                                     }
-                                                                    className="rounded-lg bg-yellow-50 px-3 py-2 text-xs font-semibold text-yellow-700 hover:bg-yellow-100"
+                                                                    className="fasop-button rounded-lg bg-yellow-50 px-3 py-2 text-xs font-semibold text-yellow-700 hover:bg-yellow-100"
                                                                 >
                                                                     Edit
                                                                 </button>
@@ -1202,7 +1272,7 @@ function Skema() {
                                                                             item
                                                                         )
                                                                     }
-                                                                    className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+                                                                    className="fasop-button rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
                                                                 >
                                                                     Hapus
                                                                 </button>
@@ -1325,9 +1395,9 @@ function Skema() {
                     DETAIL
                 ==================================== */}
 
-                <div className="xl:col-span-2">
+                <div className="min-w-0">
 
-                    <div className="rounded-xl bg-white shadow-sm">
+                    <div className="fasop-scale-in rounded-xl bg-white shadow-sm">
 
                         {!selectedSkema ? (
 
@@ -1375,7 +1445,7 @@ function Skema() {
 
 
                                         <span
-                                            className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusStyle(
+                                            className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${getStatusStyle(
                                                 selectedSkema.aktif
                                             )}`}
                                         >
@@ -1433,7 +1503,7 @@ function Skema() {
                                                             tab.id as DetailTab
                                                         )
                                                     }
-                                                    className={`border-b-2 px-4 py-3 text-sm font-semibold ${
+                                                    className={`fasop-button border-b-2 px-4 py-3 text-sm font-semibold ${
                                                         activeTab ===
                                                         tab.id
                                                             ? "border-blue-600 text-blue-600"
