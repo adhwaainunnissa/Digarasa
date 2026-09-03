@@ -4,6 +4,7 @@ import {
     Route,
     Routes,
 } from "react-router-dom";
+import { ExternalLink, LineChart, Activity, Server, LayoutDashboard } from "lucide-react";
 
 import Users from "./pages/Users";
 import Login from "./pages/Login";
@@ -29,402 +30,68 @@ function Grafana() {
     };
 
     return (
-
-        <div
-            className="
-                relative
-                flex
-                min-h-full
-                items-center
-                justify-center
-                overflow-hidden
-                bg-gradient-to-br
-                from-blue-50
-                via-gray-50
-                to-yellow-50
-                p-8
-            "
-        >
-
-            {/* ==================================================
-                BACKGROUND DECORATION
-            ================================================== */}
-
-            <div
-                className="
-                    pointer-events-none
-                    absolute
-                    -right-20
-                    -top-20
-                    h-64
-                    w-64
-                    animate-pulse
-                    rounded-full
-                    bg-yellow-200
-                    opacity-40
-                    blur-3xl
-                "
-            ></div>
-
-
-            <div
-                className="
-                    pointer-events-none
-                    absolute
-                    -bottom-20
-                    -left-20
-                    h-72
-                    w-72
-                    animate-pulse
-                    rounded-full
-                    bg-blue-200
-                    opacity-40
-                    blur-3xl
-                "
-            ></div>
-
-
-            {/* ==================================================
-                MAIN CARD
-            ================================================== */}
-
-            <div
-                className="
-                    relative
-                    w-full
-                    max-w-3xl
-                    overflow-hidden
-                    rounded-3xl
-                    border
-                    border-gray-100
-                    bg-white
-                    shadow-xl
-                    shadow-blue-900/10
-                    transition-all
-                    duration-500
-                    hover:-translate-y-2
-                    hover:shadow-2xl
-                "
-            >
-
-                {/* ==================================================
-                    YELLOW PLN LINE
-                ================================================== */}
-
-                <div
-                    className="
-                        h-2
-                        w-full
-                        bg-[#F7E92A]
-                    "
-                ></div>
-
-
-                {/* ==================================================
-                    CONTENT
-                ================================================== */}
-
-                <div className="p-12 text-center">
-
-
-                    {/* ==================================================
-                        GRAFANA LOGO
-                    ================================================== */}
-
-                    <div
-                        className="
-                            mx-auto
-                            mb-6
-                            flex
-                            h-20
-                            w-20
-                            animate-bounce
-                            items-center
-                            justify-center
-                            rounded-2xl
-                            bg-orange-50
-                            shadow-md
-                        "
-                    >
-
-                        <img
-                            src="/logo gravana.png"
-                            alt="Grafana"
-                            className="
-                                h-12
-                                w-12
-                                object-contain
-                                transition
-                                duration-300
-                                hover:scale-125
-                                hover:rotate-12
-                            "
-                        />
-
+        <div className="flex h-screen w-full flex-col bg-slate-50 overflow-hidden">
+            {/* ========================================
+                HEADER SECTION
+            ======================================== */}
+            <header className="shrink-0 border-b border-slate-200 bg-white px-8 py-6">
+                <div className="mx-auto flex max-w-6xl items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-orange-600 shadow-sm border border-orange-100">
+                        <LineChart className="h-6 w-6" />
                     </div>
-
-
-                    {/* ==================================================
-                        TITLE
-                    ================================================== */}
-
-                    <h1
-                        className="
-                            text-4xl
-                            font-bold
-                            text-blue-950
-                        "
-                    >
-                        Grafana
-                    </h1>
-
-
-                    <p
-                        className="
-                            mx-auto
-                            mt-4
-                            max-w-xl
-                            text-lg
-                            leading-relaxed
-                            text-gray-500
-                        "
-                    >
-                        Akses dashboard monitoring Grafana untuk melihat
-                        data dan visualisasi sistem secara real-time.
-                    </p>
-
-
-                    {/* ==================================================
-                        INFORMATION CARDS
-                    ================================================== */}
-
-                    <div
-                        className="
-                            mx-auto
-                            mt-8
-                            grid
-                            max-w-xl
-                            grid-cols-1
-                            gap-4
-                            sm:grid-cols-3
-                        "
-                    >
-
-
-                        {/* ==================================================
-                            MONITORING
-                        ================================================== */}
-
-                        <div
-                            className="
-                                rounded-xl
-                                border
-                                border-blue-100
-                                bg-blue-50
-                                p-4
-                                transition-all
-                                duration-300
-                                hover:-translate-y-2
-                                hover:scale-105
-                                hover:shadow-lg
-                            "
-                        >
-
-                            <div className="text-2xl">
-                                📈
-                            </div>
-
-                            <p
-                                className="
-                                    mt-2
-                                    text-sm
-                                    font-semibold
-                                    text-blue-900
-                                "
-                            >
-                                Monitoring
-                            </p>
-
-                            <p
-                                className="
-                                    mt-1
-                                    text-xs
-                                    text-gray-500
-                                "
-                            >
-                                Dashboard
-                            </p>
-
-                        </div>
-
-
-                        {/* ==================================================
-                            REAL-TIME
-                        ================================================== */}
-
-                        <div
-                            className="
-                                rounded-xl
-                                border
-                                border-yellow-200
-                                bg-yellow-50
-                                p-4
-                                transition-all
-                                duration-300
-                                hover:-translate-y-2
-                                hover:scale-105
-                                hover:shadow-lg
-                            "
-                        >
-
-                            <div
-                                className="
-                                    animate-pulse
-                                    text-2xl
-                                "
-                            >
-                                ⚡
-                            </div>
-
-                            <p
-                                className="
-                                    mt-2
-                                    text-sm
-                                    font-semibold
-                                    text-yellow-900
-                                "
-                            >
-                                Real-time
-                            </p>
-
-                            <p
-                                className="
-                                    mt-1
-                                    text-xs
-                                    text-gray-500
-                                "
-                            >
-                                Data
-                            </p>
-
-                        </div>
-
-
-                        {/* ==================================================
-                            VISUALISASI
-                        ================================================== */}
-
-                        <div
-                            className="
-                                rounded-xl
-                                border
-                                border-gray-200
-                                bg-gray-50
-                                p-4
-                                transition-all
-                                duration-300
-                                hover:-translate-y-2
-                                hover:scale-105
-                                hover:shadow-lg
-                            "
-                        >
-
-                            <div className="text-2xl">
-                                📊
-                            </div>
-
-                            <p
-                                className="
-                                    mt-2
-                                    text-sm
-                                    font-semibold
-                                    text-gray-800
-                                "
-                            >
-                                Visualisasi
-                            </p>
-
-                            <p
-                                className="
-                                    mt-1
-                                    text-xs
-                                    text-gray-500
-                                "
-                            >
-                                Sistem
-                            </p>
-
-                        </div>
-
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Grafana Monitoring</h1>
+                        <p className="mt-1 text-sm font-medium text-slate-500">Akses dashboard analitik dan visualisasi real-time FASOP.</p>
                     </div>
-
-
-                    {/* ==================================================
-                        BUTTON GRAFANA
-                    ================================================== */}
-
-                    <button
-                        onClick={bukaGrafana}
-                        className="
-                            mt-10
-                            inline-flex
-                            items-center
-                            justify-center
-                            gap-3
-                            rounded-xl
-                            bg-blue-700
-                            px-10
-                            py-4
-                            font-semibold
-                            text-white
-                            shadow-lg
-                            shadow-blue-700/20
-                            transition-all
-                            duration-300
-                            hover:-translate-y-2
-                            hover:bg-blue-800
-                            hover:shadow-xl
-                            active:scale-95
-                        "
-                    >
-
-                        <img
-                            src="/logo gravana.png"
-                            alt="Grafana"
-                            className="
-                                h-8
-                                w-8
-                                object-contain
-                                transition
-                                duration-300
-                            "
-                        />
-
-                        <span>
-                            Buka Grafana
-                        </span>
-
-                    </button>
-
-
-                    {/* ==================================================
-                        FOOTER
-                    ================================================== */}
-
-                    <p
-                        className="
-                            mt-6
-                            text-xs
-                            text-gray-400
-                        "
-                    >
-                        FASOP Monitoring System • PLN UP2B Ungaran
-                    </p>
-
                 </div>
+            </header>
 
-            </div>
+            {/* ========================================
+                MAIN CONTENT
+            ======================================== */}
+            <main className="flex-1 overflow-y-auto p-8 flex items-center justify-center">
+                <div className="w-full max-w-4xl rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col relative animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    {/* PLN Accent Line */}
+                    <div className="absolute top-0 left-0 w-full h-1 bg-yellow-400"></div>
+                    
+                    <div className="p-10 md:p-14 flex flex-col items-center text-center">
+                        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
+                            <img src="/logo gravana.png" alt="Grafana" className="h-12 w-12 object-contain opacity-90" />
+                        </div>
+                        
+                        <h2 className="text-2xl font-bold text-slate-900 mb-3">Sistem Visualisasi Eksternal</h2>
+                        <p className="text-slate-500 max-w-xl mb-12 leading-relaxed text-sm">
+                            Modul pemantauan visual menggunakan Grafana berjalan pada environment terpisah. Anda akan diarahkan ke dashboard eksternal di tab baru untuk melihat metrik operasional secara real-time.
+                        </p>
 
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mb-12">
+                            <div className="flex flex-col items-center p-6 rounded-xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-sm transition-all duration-300">
+                                <Activity className="h-7 w-7 text-blue-600 mb-4" />
+                                <h3 className="font-semibold text-slate-900 text-sm">Real-time Telemetri</h3>
+                                <p className="text-xs text-slate-500 mt-2 text-center leading-relaxed">Monitoring status operasional dan kesehatan sistem secara langsung.</p>
+                            </div>
+                            <div className="flex flex-col items-center p-6 rounded-xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-sm transition-all duration-300">
+                                <LayoutDashboard className="h-7 w-7 text-emerald-600 mb-4" />
+                                <h3 className="font-semibold text-slate-900 text-sm">Analitik Lanjut</h3>
+                                <p className="text-xs text-slate-500 mt-2 text-center leading-relaxed">Grafik interaktif, metrik historis, dan riwayat data perangkat.</p>
+                            </div>
+                            <div className="flex flex-col items-center p-6 rounded-xl border border-slate-100 bg-slate-50 hover:bg-white hover:shadow-sm transition-all duration-300">
+                                <Server className="h-7 w-7 text-orange-600 mb-4" />
+                                <h3 className="font-semibold text-slate-900 text-sm">Kinerja Jaringan</h3>
+                                <p className="text-xs text-slate-500 mt-2 text-center leading-relaxed">Evaluasi beban server, latensi, dan respons perangkat keras.</p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={bukaGrafana}
+                            className="inline-flex items-center gap-2.5 rounded-md bg-blue-600 px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                        >
+                            <ExternalLink className="h-4 w-4" />
+                            Buka Grafana Workspace
+                        </button>
+                    </div>
+                </div>
+            </main>
         </div>
     );
 }
