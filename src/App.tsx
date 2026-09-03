@@ -53,12 +53,12 @@ function Grafana() {
                 <div className="w-full max-w-4xl rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col relative animate-in fade-in slide-in-from-bottom-2 duration-300">
                     {/* PLN Accent Line */}
                     <div className="absolute top-0 left-0 w-full h-1 bg-yellow-400"></div>
-                    
+
                     <div className="p-10 md:p-14 flex flex-col items-center text-center">
                         <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
                             <img src="/logo gravana.png" alt="Grafana" className="h-12 w-12 object-contain opacity-90" />
                         </div>
-                        
+
                         <h2 className="text-2xl font-bold text-slate-900 mb-3">Sistem Visualisasi Eksternal</h2>
                         <p className="text-slate-500 max-w-xl mb-12 leading-relaxed text-sm">
                             Modul pemantauan visual menggunakan Grafana berjalan pada environment terpisah. Anda akan diarahkan ke dashboard eksternal di tab baru untuk melihat metrik operasional secara real-time.

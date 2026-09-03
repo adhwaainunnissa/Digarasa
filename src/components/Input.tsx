@@ -10,15 +10,15 @@ export default function Input({
   placeholder,
 }: InputProps) {
   return (
-    <div className="w-full">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+    <div className="w-full space-y-1.5">
+      <label className="block text-sm font-medium text-slate-700">
         {label}
       </label>
 
       <input
         type={type}
         placeholder={placeholder}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        className="block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition-all duration-200 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
       />
     </div>
   );

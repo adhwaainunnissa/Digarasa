@@ -125,7 +125,7 @@ function Dashboard() {
                         ))
                     ) : (
                         <>
-                            <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-slate-300 hover:shadow-md">
+                            <div className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xs font-medium uppercase tracking-wider text-slate-500">Monitored Tables</h3>
                                     <Database className="h-4 w-4 text-blue-600" />
@@ -135,33 +135,33 @@ function Dashboard() {
                                 </div>
                             </div>
 
-                            <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-slate-300 hover:shadow-md">
+                            <div className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xs font-medium uppercase tracking-wider text-slate-500">Active Admins</h3>
-                                    <Users className="h-4 w-4 text-emerald-600" />
+                                    <Users className="h-4 w-4 text-blue-600" />
                                 </div>
                                 <div className="mt-4 flex items-baseline gap-2">
                                     <span className="text-3xl font-bold tracking-tight text-slate-900">{stats?.totalUsers ?? 0}</span>
                                 </div>
                             </div>
 
-                            <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-slate-300 hover:shadow-md">
+                            <div className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xs font-medium uppercase tracking-wider text-slate-500">Database Status</h3>
                                     <Server className={`h-4 w-4 ${isDbConnected ? 'text-emerald-600' : 'text-red-600'}`} />
                                 </div>
                                 <div className="mt-4 flex items-center gap-2">
-                                    <div className={`h-2.5 w-2.5 rounded-full ${isDbConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                    <div className={`h-2.5 w-2.5 rounded-full ${isDbConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
                                     <span className="text-lg font-semibold tracking-tight text-slate-900">
                                         {stats?.databaseStatus || "Unknown"}
                                     </span>
                                 </div>
                             </div>
 
-                            <div className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-slate-300 hover:shadow-md">
+                            <div className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xs font-medium uppercase tracking-wider text-slate-500">Access Level</h3>
-                                    <ShieldCheck className="h-4 w-4 text-indigo-600" />
+                                    <ShieldCheck className="h-4 w-4 text-blue-600" />
                                 </div>
                                 <div className="mt-4 flex items-baseline gap-2">
                                     <span className="text-lg font-semibold capitalize tracking-tight text-slate-900">{user?.role || "-"}</span>
@@ -175,7 +175,7 @@ function Dashboard() {
                     
                     {/* Database & Infrastructure */}
                     <div className="lg:col-span-2">
-                        <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
                             <div className="border-b border-slate-100 px-6 py-4">
                                 <h3 className="text-sm font-semibold text-slate-900">Infrastructure Status</h3>
                             </div>
@@ -223,7 +223,7 @@ function Dashboard() {
                     <div className="flex flex-col gap-6 lg:col-span-1">
                         
                         {/* Quick Access */}
-                        <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
                             <div className="border-b border-slate-100 px-6 py-4">
                                 <h3 className="text-sm font-semibold text-slate-900">Quick Operations</h3>
                             </div>
@@ -252,7 +252,7 @@ function Dashboard() {
                         </div>
 
                         {/* Admin Info */}
-                        <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
                             <div className="border-b border-slate-100 px-6 py-4">
                                 <h3 className="text-sm font-semibold text-slate-900">Current Session</h3>
                             </div>

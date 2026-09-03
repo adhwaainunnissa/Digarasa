@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import api from "../api/axios";
 import { 
-    Database as DatabaseIcon, 
     Search, 
     Plus, 
     Edit2, 
@@ -199,7 +198,6 @@ export default function Skema() {
     const [formSkemaAktif, setFormSkemaAktif] = useState<number | "">("");
 
     const [showTabForm, setShowTabForm] = useState<"mt" | "rele" | "rtac" | null>(null);
-    const [editingTabRow, setEditingTabRow] = useState<any | null>(null);
     const [formTabDevice, setFormTabDevice] = useState<DeviceProsis | null>(null);
     const [formTabJenis, setFormTabJenis] = useState("");
     const [formTabRtac, setFormTabRtac] = useState<any>({});
@@ -373,7 +371,6 @@ export default function Skema() {
     const openAddTab = (type: "mt" | "rele" | "rtac") => {
         if (!isAdmin) return alert("Anda tidak memiliki izin.");
         setShowTabForm(type);
-        setEditingTabRow(null);
         setFormTabDevice(null);
         setFormTabJenis("");
         setFormTabRtac({});
