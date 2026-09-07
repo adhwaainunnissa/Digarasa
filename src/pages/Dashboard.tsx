@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { 
-    Activity, 
-    Database, 
-    Users, 
-    ShieldCheck, 
-    Server, 
-    ChevronRight, 
-    AlertCircle, 
+import {
+    Activity,
+    Database,
+    Users,
+    ShieldCheck,
+    Server,
+    ChevronRight,
+    AlertCircle,
     BarChart3,
     Clock,
     Cpu
@@ -25,7 +25,7 @@ function Dashboard() {
     const [error, setError] = useState("");
 
     const user = JSON.parse(localStorage.getItem("user") || "null");
-    
+
     // Format current date/time for the header
     const currentDate = new Date().toLocaleDateString('id-ID', {
         weekday: 'long',
@@ -72,7 +72,7 @@ function Dashboard() {
                             </p>
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-4 text-sm">
                         <div className="hidden items-center gap-2 text-slate-500 md:flex">
                             <Clock className="h-4 w-4" />
@@ -90,14 +90,14 @@ function Dashboard() {
             </header>
 
             <main className="mx-auto max-w-7xl px-6 py-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                
+
                 {/* Page Title & Actions */}
                 <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight text-slate-900">System Overview</h2>
                         <p className="mt-1 text-sm text-slate-500">Real-time telemetry and administrative control center.</p>
                     </div>
-                    
+
                     <div className="flex items-center gap-3">
                         <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
                             <span className="relative flex h-2 w-2">
@@ -172,7 +172,7 @@ function Dashboard() {
                 </div>
 
                 <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-                    
+
                     {/* Database & Infrastructure */}
                     <div className="lg:col-span-2">
                         <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -188,7 +188,7 @@ function Dashboard() {
                                         <div>
                                             <h4 className="text-sm font-medium text-slate-900">Primary Database Node</h4>
                                             <p className="mt-1 text-sm text-slate-500">PostgreSQL instance running at local cluster.</p>
-                                            
+
                                             <div className="mt-4 flex items-center gap-2">
                                                 <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${isDbConnected ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                                                     {isDbConnected ? 'Operational' : 'Critical Failure'}
@@ -197,7 +197,7 @@ function Dashboard() {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-6 border-t border-slate-100 pt-6 md:border-l md:border-t-0 md:pl-6 md:pt-0">
                                         <div>
                                             <p className="text-xs font-medium uppercase tracking-wider text-slate-500">CPU Usage</p>
@@ -221,14 +221,14 @@ function Dashboard() {
 
                     {/* Quick Access & System Info */}
                     <div className="flex flex-col gap-6 lg:col-span-1">
-                        
+
                         {/* Quick Access */}
                         <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
                             <div className="border-b border-slate-100 px-6 py-4">
                                 <h3 className="text-sm font-semibold text-slate-900">Quick Operations</h3>
                             </div>
                             <div className="p-2">
-                                <a 
+                                <a
                                     href="/database"
                                     className="flex items-center justify-between rounded-md p-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
                                 >
@@ -238,7 +238,7 @@ function Dashboard() {
                                     </div>
                                     <ChevronRight className="h-4 w-4 text-slate-400" />
                                 </a>
-                                <a 
+                                <a
                                     href="/grafana"
                                     className="flex items-center justify-between rounded-md p-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
                                 >
