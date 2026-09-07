@@ -2,15 +2,12 @@ const express = require("express");
 
 const router = express.Router();
 
-const skemaController =
-    require("../controllers/skemaController");
+const skemaController = require("../controllers/skemaController");
+const authenticateToken = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 
-const authenticateToken =
-    require("../middleware/authMiddleware");
-
-const roleMiddleware =
-    require("../middleware/roleMiddleware");
-
+// Semua endpoint SKEMA wajib login
+router.use(authenticateToken);
 
 // ========================================
 // SUBSISTEM
@@ -18,10 +15,18 @@ const roleMiddleware =
 
 router.get(
     "/subsistem",
-    authenticateToken,
     skemaController.getSubsistem
 );
 
+// ========================================
+// DEVICE PROSIS
+// Dipakai oleh form MT / RELE
+// ========================================
+
+router.get(
+    "/devices",
+    skemaController.getDevices
+);
 
 // ========================================
 // LIST SKEMA
@@ -29,10 +34,41 @@ router.get(
 
 router.get(
     "/",
-    authenticateToken,
     skemaController.getSkema
 );
 
+// ========================================
+// DETAIL RTAC
+// Harus diletakkan sebelum /:id
+// ========================================
+
+router.get(
+    "/rtac/:skemaName",
+    skemaController.getSkemaRTAC
+);
+
+// ========================================
+// CRUD RTAC
+// Identifier RTAC menggunakan Tag_Name
+// ========================================
+
+router.post(
+    "/rtac",
+    roleMiddleware("admin"),
+    skemaController.createSkemaRTAC
+);
+
+router.put(
+    "/rtac/item/:tagName",
+    roleMiddleware("admin"),
+    skemaController.updateSkemaRTAC
+);
+
+router.delete(
+    "/rtac/item/:tagName",
+    roleMiddleware("admin"),
+    skemaController.deleteSkemaRTAC
+);
 
 // ========================================
 // DETAIL MT
@@ -40,10 +76,31 @@ router.get(
 
 router.get(
     "/:id/mt",
-    authenticateToken,
     skemaController.getSkemaMT
 );
 
+// ========================================
+// CRUD MT
+// no = DEVICE_PROSIS.no
+// ========================================
+
+router.post(
+    "/:id/mt",
+    roleMiddleware("admin"),
+    skemaController.createSkemaMT
+);
+
+router.put(
+    "/:id/mt/:no",
+    roleMiddleware("admin"),
+    skemaController.updateSkemaMT
+);
+
+router.delete(
+    "/:id/mt/:no",
+    roleMiddleware("admin"),
+    skemaController.deleteSkemaMT
+);
 
 // ========================================
 // DETAIL RELE
@@ -51,21 +108,31 @@ router.get(
 
 router.get(
     "/:id/rele",
-    authenticateToken,
     skemaController.getSkemaRele
 );
 
-
 // ========================================
-// DETAIL RTAC
+// CRUD RELE
+// no = DEVICE_PROSIS.no
 // ========================================
 
-router.get(
-    "/rtac/:skemaName",
-    authenticateToken,
-    skemaController.getSkemaRTAC
+router.post(
+    "/:id/rele",
+    roleMiddleware("admin"),
+    skemaController.createSkemaRele
 );
 
+router.put(
+    "/:id/rele/:no",
+    roleMiddleware("admin"),
+    skemaController.updateSkemaRele
+);
+
+router.delete(
+    "/:id/rele/:no",
+    roleMiddleware("admin"),
+    skemaController.deleteSkemaRele
+);
 
 // ========================================
 // GET ONE SKEMA
@@ -73,42 +140,35 @@ router.get(
 
 router.get(
     "/:id",
-    authenticateToken,
     skemaController.getSkemaById
 );
 
-
 // ========================================
-// CREATE
+// CREATE SKEMA
 // ========================================
 
 router.post(
     "/",
-    authenticateToken,
     roleMiddleware("admin"),
     skemaController.createSkema
 );
 
-
 // ========================================
-// UPDATE
+// UPDATE SKEMA
 // ========================================
 
 router.put(
     "/:id",
-    authenticateToken,
     roleMiddleware("admin"),
     skemaController.updateSkema
 );
 
-
 // ========================================
-// DELETE
+// DELETE SKEMA
 // ========================================
 
 router.delete(
     "/:id",
-    authenticateToken,
     roleMiddleware("admin"),
     skemaController.deleteSkema
 );

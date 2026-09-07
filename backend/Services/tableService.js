@@ -88,6 +88,7 @@ exports.getTableInfo = async (table) => {
             c.data_type,
             c.is_nullable,
             c.column_default,
+            c.is_identity,
 
             CASE
                 WHEN tc.constraint_type = 'PRIMARY KEY'
