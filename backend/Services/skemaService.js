@@ -454,11 +454,12 @@ exports.getSkemaRele = async (idSkema) => {
 
 exports.createSkemaRele = async (idSkema, { no }) => {
     await validateSkemaExists(idSkema);
-    await validateDeviceExists(no);
 
     if (no === null || no === undefined || no === "") {
         throw new Error("Device wajib dipilih.");
     }
+
+    await validateDeviceExists(no);
 
     const duplicate = await db.query(
         `
@@ -576,6 +577,8 @@ exports.deleteSkemaRele = async (idSkema, no) => {
 // Relasi ke SKEMA menggunakan nilai teks pada kolom "Skema".
 
 exports.getSkemaRTAC = async (skemaName) => {
+    await ensureSkemaNameExists(skemaName);
+
     const result = await db.query(
         `
         SELECT
@@ -597,7 +600,6 @@ exports.getSkemaRTAC = async (skemaName) => {
 
     return result.rows;
 };
-
 // ========================================
 // CREATE RTAC
 // ========================================
@@ -667,15 +669,18 @@ exports.createSkemaRTAC = async ({
 // UPDATE RTAC
 // ========================================
 
-exports.updateSkemaRTAC = async (oldTagName, {
-    Tag_Name,
-    Gardu_Induk,
-    Bay_Target,
-    Skema,
-    Tahap,
-}) => {
-    if (!oldTagName) {
-        throw new Error("Tag Name lama wajib dikirim.");
+exports.updateSkemaRTAC = async (
+    oldData,
+    {
+        Tag_Name,
+        Gardu_Induk,
+        Bay_Target,
+        Skema,
+        Tahap,
+    }
+) => {
+    if (!oldData || !oldData.Tag_Name) {
+        throw new Error("Data RTAC lama wajib dikirim.");
     }
 
     if (!Tag_Name || !String(Tag_Name).trim()) {
@@ -698,28 +703,23 @@ exports.updateSkemaRTAC = async (oldTagName, {
             "Tahap"
         FROM "Skema_RTAC"
         WHERE "Tag_Name" = $1
+          AND "Gardu_Induk" IS NOT DISTINCT FROM $2
+          AND "Bay_Target" IS NOT DISTINCT FROM $3
+          AND "Skema" IS NOT DISTINCT FROM $4
+          AND "Tahap" IS NOT DISTINCT FROM $5
+        LIMIT 1
         `,
-        [oldTagName]
+        [
+            oldData.Tag_Name,
+            toNullable(oldData.Gardu_Induk),
+            toNullable(oldData.Bay_Target),
+            toNullable(oldData.Skema),
+            toNullable(oldData.Tahap),
+        ]
     );
 
     if (existing.rows.length === 0) {
-        throw new Error("Data RTAC tidak ditemukan.");
-    }
-
-    if (String(Tag_Name).trim() !== oldTagName) {
-        const duplicate = await db.query(
-            `
-            SELECT 1
-            FROM "Skema_RTAC"
-            WHERE "Tag_Name" = $1
-            LIMIT 1
-            `,
-            [String(Tag_Name).trim()]
-        );
-
-        if (duplicate.rows.length > 0) {
-            throw new Error("Tag Name RTAC sudah digunakan.");
-        }
+        throw new Error("Data RTAC lama tidak ditemukan.");
     }
 
     const result = await db.query(
@@ -732,6 +732,10 @@ exports.updateSkemaRTAC = async (oldTagName, {
             "Skema" = $4,
             "Tahap" = $5
         WHERE "Tag_Name" = $6
+          AND "Gardu_Induk" IS NOT DISTINCT FROM $7
+          AND "Bay_Target" IS NOT DISTINCT FROM $8
+          AND "Skema" IS NOT DISTINCT FROM $9
+          AND "Tahap" IS NOT DISTINCT FROM $10
         RETURNING
             "Tag_Name",
             "Gardu_Induk",
@@ -745,9 +749,18 @@ exports.updateSkemaRTAC = async (oldTagName, {
             toNullable(Bay_Target),
             String(Skema).trim(),
             toNullable(Tahap),
-            oldTagName,
+
+            oldData.Tag_Name,
+            toNullable(oldData.Gardu_Induk),
+            toNullable(oldData.Bay_Target),
+            toNullable(oldData.Skema),
+            toNullable(oldData.Tahap),
         ]
     );
+
+    if (result.rows.length === 0) {
+        throw new Error("Data RTAC gagal diperbarui.");
+    }
 
     return result.rows[0];
 };
@@ -756,11 +769,25 @@ exports.updateSkemaRTAC = async (oldTagName, {
 // DELETE RTAC
 // ========================================
 
-exports.deleteSkemaRTAC = async (tagName) => {
+exports.deleteSkemaRTAC = async ({
+    Tag_Name,
+    Gardu_Induk,
+    Bay_Target,
+    Skema,
+    Tahap,
+}) => {
+    if (!Tag_Name) {
+        throw new Error("Data RTAC tidak valid.");
+    }
+
     const result = await db.query(
         `
         DELETE FROM "Skema_RTAC"
         WHERE "Tag_Name" = $1
+          AND "Gardu_Induk" IS NOT DISTINCT FROM $2
+          AND "Bay_Target" IS NOT DISTINCT FROM $3
+          AND "Skema" IS NOT DISTINCT FROM $4
+          AND "Tahap" IS NOT DISTINCT FROM $5
         RETURNING
             "Tag_Name",
             "Gardu_Induk",
@@ -768,7 +795,13 @@ exports.deleteSkemaRTAC = async (tagName) => {
             "Skema",
             "Tahap"
         `,
-        [tagName]
+        [
+            Tag_Name,
+            toNullable(Gardu_Induk),
+            toNullable(Bay_Target),
+            toNullable(Skema),
+            toNullable(Tahap),
+        ]
     );
 
     if (result.rows.length === 0) {
