@@ -1572,3 +1572,104 @@ Build a cohesive original visual language for FASOP Monitoring System.
 The result should feel like a premium enterprise monitoring platform designed specifically for PLN UP2B Ungaran: technically credible, operationally useful, human-readable, elegant, and significantly more polished than a typical internship CRUD application.
 
 Do not copy another website pixel-for-pixel. Do not use fake data to make the UI look richer. Use the real existing data structures and API contracts where available, and clearly separate technical database presentation from business-facing workflows.
+
+# 43. Mentor Revision — Monitoring & Alert Requirements
+
+## 43.1 SKEMA_RELE CRUD
+
+SKEMA_RELE must support:
+- add
+- edit
+- delete
+- view
+
+Because SKEMA_RELE may not have a single primary key, row operations must use the
+combination of `id_skema + no` where applicable.
+
+Do not assume the table must be altered to add a new primary key unless required
+after database inspection.
+
+## 43.2 Monitoring Readiness Status
+
+The application must support operational readiness states:
+
+- READY
+- WARNING
+- ALERT
+
+Each status must have:
+- clear visual representation
+- consistent color semantics
+- human-readable explanation
+
+The status logic must be based on the real PostgreSQL monitoring data source.
+Do not hardcode or fabricate status values.
+
+## 43.3 Active Alerts
+
+The monitoring interface must provide an Active Alerts section.
+
+Users should be able to:
+- view active alerts
+- clear one alert
+- clear all active alerts
+
+"Clear Alert" must not delete master/reference data such as SKEMA, SKEMA_RELE,
+DEVICE_PROSIS, etc.
+
+Clear means resolving/removing the active alert state from the underlying
+monitoring source.
+
+## 43.4 Grafana Synchronization
+
+Grafana and the FASOP web application use PostgreSQL as the monitoring source.
+
+The application must use the same underlying source of truth as Grafana.
+
+When an alert is cleared from the web application, the corresponding PostgreSQL
+state must change so that Grafana reflects the updated state after its datasource
+refresh.
+
+Do not create an independent frontend-only alert dataset.
+
+Before implementing alert clear logic, inspect the existing PostgreSQL table/view
+and Grafana query that produce the monitoring status.
+
+If the source structure is unknown, do not invent it.
+
+## Mentor Revision — Monitoring & Alert Requirements
+
+Include these requirements:
+
+1. SKEMA_RELE must support:
+- Add
+- Edit
+- Delete
+- View
+
+Because SKEMA_RELE may not have a single primary key, edit/delete should use the real row identity such as `id_skema + no` where applicable.
+Do not add a new primary key to the database unless later inspection proves it is necessary.
+
+2. Monitoring readiness must support:
+- READY
+- WARNING
+- ALERT
+
+Each status must have a clear visual representation and a human-readable explanation.
+
+3. Active Alerts must support:
+- viewing active alerts
+- clearing a single alert
+- clearing all active alerts
+
+"Clear Alert" must NOT delete master data such as SKEMA, SKEMA_RELE, DEVICE_PROSIS, etc.
+
+4. Grafana synchronization:
+- Website and Grafana use PostgreSQL as the underlying monitoring source.
+- Clearing an alert from the website must eventually update the same PostgreSQL source used by Grafana.
+- Grafana should reflect the cleared state after datasource refresh.
+- Do not create a separate frontend-only alert dataset.
+
+5. IMPORTANT:
+Do not invent the alert table, columns, status logic, or Grafana query.
+Those must be determined from the existing PostgreSQL/Grafana implementation later.

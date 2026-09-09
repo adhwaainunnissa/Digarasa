@@ -274,11 +274,11 @@ exports.getSkemaMT = async (idSkema) => {
 exports.createSkemaMT = async (idSkema, { no, jenis }) => {
     await validateSkemaExists(idSkema);
 
-    const device = await validateDeviceExists(no);
-
     if (no === null || no === undefined || no === "") {
         throw new Error("Device wajib dipilih.");
     }
+
+    const device = await validateDeviceExists(no);
 
     const duplicate = await db.query(
         `

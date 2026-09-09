@@ -216,6 +216,7 @@ export default function Skema() {
     const [formSkemaAktif, setFormSkemaAktif] = useState<number | "">("");
 
     const [showTabForm, setShowTabForm] = useState<"mt" | "rele" | "rtac" | null>(null);
+    const [editingTabItem, setEditingTabItem] = useState<any | null>(null);
     const [formTabDevice, setFormTabDevice] = useState<DeviceProsis | null>(null);
     const [formTabJenis, setFormTabJenis] = useState("");
     const [formTabRtac, setFormTabRtac] = useState<any>({});
@@ -389,9 +390,31 @@ export default function Skema() {
     const openAddTab = (type: "mt" | "rele" | "rtac") => {
         if (!isAdmin) return alert("Anda tidak memiliki izin.");
         setShowTabForm(type);
+        setEditingTabItem(null);
         setFormTabDevice(null);
         setFormTabJenis("");
         setFormTabRtac({});
+    };
+
+    const openEditTab = (type: "mt" | "rele" | "rtac", row: any) => {
+        if (!isAdmin) return alert("Anda tidak memiliki izin.");
+        setShowTabForm(type);
+        setEditingTabItem(row);
+        
+        if (type === "mt" || type === "rele") {
+            setFormTabDevice({
+                no: row.no,
+                tag_name: row.tag_name,
+                gi: row.gi,
+                jenis: row.jenis,
+                keterangan: row.keterangan,
+                merek: row.merek,
+                tipe: row.tipe
+            } as DeviceProsis);
+            setFormTabJenis(row.jenis || "");
+        } else if (type === "rtac") {
+            setFormTabRtac(row);
+        }
     };
 
     const handleSaveTab = async (e: React.FormEvent) => {
@@ -400,23 +423,35 @@ export default function Skema() {
 
         try {
             setSaving(true);
-            const tableMap = { mt: "SKEMA_MT", rele: "SKEMA_RELE", rtac: "Skema_RTAC" };
-            const tableName = tableMap[showTabForm];
             let payload: any = {};
 
-            if (showTabForm === "mt" || showTabForm === "rele") {
+            if (showTabForm === "mt") {
+                if (!formTabDevice) return alert("Pilih peralatan terlebih dahulu.");
+                payload = { no: formTabDevice.no, id_skema: selectedSkema.id_skema, jenis: formTabJenis || null };
+                if (editingTabItem) {
+                    await api.put(`/skema/${selectedSkema.id_skema}/mt/${editingTabItem.no}`, payload);
+                } else {
+                    await api.post(`/skema/${selectedSkema.id_skema}/mt`, payload);
+                }
+            } else if (showTabForm === "rele") {
                 if (!formTabDevice) return alert("Pilih peralatan terlebih dahulu.");
                 payload = { no: formTabDevice.no, id_skema: selectedSkema.id_skema };
-                if (showTabForm === "mt") payload.jenis = formTabJenis || null;
-                
-                // Generic POST to /tables
-                await api.post(`/tables/${tableName}`, payload);
+                if (editingTabItem) {
+                    await api.put(`/skema/${selectedSkema.id_skema}/rele/${editingTabItem.no}`, payload);
+                } else {
+                    await api.post(`/skema/${selectedSkema.id_skema}/rele`, payload);
+                }
             } else if (showTabForm === "rtac") {
                 payload = { ...formTabRtac, Skema: selectedSkema.skema };
-                await api.post(`/tables/${tableName}`, payload);
+                if (editingTabItem) {
+                    await api.put(`/skema/rtac/item/${encodeURIComponent(editingTabItem.Tag_Name)}`, payload);
+                } else {
+                    await api.post(`/skema/rtac`, payload);
+                }
             }
 
             setShowTabForm(null);
+            setEditingTabItem(null);
             await reloadTab(showTabForm, selectedSkema);
         } catch (error: any) {
             alert(error?.response?.data?.error || error?.response?.data?.message || `Gagal menyimpan data ${showTabForm.toUpperCase()}.`);
@@ -428,19 +463,16 @@ export default function Skema() {
     const handleDeleteTab = async (type: "mt" | "rele" | "rtac", row: any) => {
         if (!isAdmin || !selectedSkema) return;
         
-        const tableMap = { mt: "SKEMA_MT", rele: "SKEMA_RELE", rtac: "Skema_RTAC" };
-        const tableName = tableMap[type];
-
-        // Determing primary key value for generic deletion
-        let pkValue = null;
-        if (type === "mt" || type === "rele") pkValue = row.no; // Assuming 'no' is PK in these join tables
-        if (type === "rtac") pkValue = row.Tag_Name; // Assuming Tag_Name is PK
-
-        if (!pkValue) return alert("Gagal menghapus: Primary key tidak ditemukan.");
         if (!window.confirm(`Yakin ingin menghapus record ini dari ${type.toUpperCase()}?`)) return;
 
         try {
-            await api.delete(`/tables/${tableName}/${encodeURIComponent(pkValue)}`);
+            if (type === "mt") {
+                await api.delete(`/skema/${selectedSkema.id_skema}/mt/${row.no}`);
+            } else if (type === "rele") {
+                await api.delete(`/skema/${selectedSkema.id_skema}/rele/${row.no}`);
+            } else if (type === "rtac") {
+                await api.delete(`/skema/rtac/item/${encodeURIComponent(row.Tag_Name)}`);
+            }
             await reloadTab(type, selectedSkema);
         } catch (error: any) {
             alert(error?.response?.data?.error || error?.response?.data?.message || "Gagal menghapus data.");
@@ -725,6 +757,7 @@ export default function Skema() {
                                                             <td className="px-4 py-3 text-slate-500 max-w-xs truncate" title={row.keterangan || ""}>{row.keterangan || "-"}</td>
                                                             {isAdmin && (
                                                                 <td className="px-4 py-3 text-right">
+                                                                    <button onClick={() => openEditTab("mt", row)} className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 mr-1"><Edit2 className="h-4 w-4" /></button>
                                                                     <button onClick={() => handleDeleteTab("mt", row)} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                                                                 </td>
                                                             )}
@@ -779,6 +812,7 @@ export default function Skema() {
                                                             <td className="px-4 py-3 text-slate-500 max-w-xs truncate" title={row.keterangan || ""}>{row.keterangan || "-"}</td>
                                                             {isAdmin && (
                                                                 <td className="px-4 py-3 text-right">
+                                                                    <button onClick={() => openEditTab("rele", row)} className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 mr-1"><Edit2 className="h-4 w-4" /></button>
                                                                     <button onClick={() => handleDeleteTab("rele", row)} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                                                                 </td>
                                                             )}
@@ -828,6 +862,7 @@ export default function Skema() {
                                                             <td className="px-4 py-3"><span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 border border-slate-200">{row.Tahap || "-"}</span></td>
                                                             {isAdmin && (
                                                                 <td className="px-4 py-3 text-right">
+                                                                    <button onClick={() => openEditTab("rtac", row)} className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 mr-1"><Edit2 className="h-4 w-4" /></button>
                                                                     <button onClick={() => handleDeleteTab("rtac", row)} className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                                                                 </td>
                                                             )}
@@ -911,7 +946,7 @@ export default function Skema() {
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowTabForm(null)} />
                     <div className="relative w-full max-w-lg transform overflow-visible rounded-xl bg-white shadow-2xl transition-all animate-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-6 py-4 rounded-t-xl">
-                            <h3 className="text-lg font-bold text-slate-900">Tambah {showTabForm.toUpperCase()}</h3>
+                            <h3 className="text-lg font-bold text-slate-900">{editingTabItem ? "Edit" : "Tambah"} {showTabForm.toUpperCase()}</h3>
                             <button type="button" onClick={() => setShowTabForm(null)} className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"><X className="h-5 w-5" /></button>
                         </div>
                         <form onSubmit={handleSaveTab} className="px-6 py-5 space-y-5">
@@ -965,7 +1000,8 @@ export default function Skema() {
                                             value={formTabRtac.Tag_Name || ""}
                                             onChange={(e) => setFormTabRtac({...formTabRtac, Tag_Name: e.target.value})}
                                             required
-                                            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                            disabled={!!editingTabItem}
+                                            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:text-slate-500"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
@@ -1014,5 +1050,3 @@ export default function Skema() {
         </div>
     );
 }
-type DetailMode = "add" | "edit" | null;
-type DeviceMode = "mt" | "rele";
