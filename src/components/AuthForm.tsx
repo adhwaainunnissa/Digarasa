@@ -31,19 +31,13 @@ export default function AuthForm({
         <div className="flex w-full flex-col justify-center px-8 sm:px-16 md:px-20 lg:px-28 xl:px-32">
             {/* Header / Branding */}
             <div className="mb-10 flex flex-col items-start animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-blue-400 p-3 shadow-lg shadow-blue-500/30">
-                    <img
-                        src="/src/assets/logo-pln.png"
-                        alt="Logo PLN"
-                        className="h-full w-full object-contain brightness-0 invert"
-                        onError={(e) => {
-                            // Fallback if logo not found
-                            e.currentTarget.style.display = 'none';
-                        }}
-                    />
-                    {/* Fallback Icon if image fails, hidden by default unless image fails but simplified here */}
-                </div>
-                
+            <div className="mb-6 flex h-20 w-20 items-center justify-center">
+                <img
+                    src="/src/assets/logo-pln.png"
+                    alt="Logo PLN"
+                    className="h-full w-full object-contain"
+                />
+            </div>                
                 <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                     FASOP
                 </h2>
