@@ -70,7 +70,7 @@ export default function Device() {
     const loadDevices = async (page = 1, searchValue = search) => {
         try {
             setLoading(true);
-            const response = await api.get("/tables/DEVICE_PROSIS", { 
+            const response = await api.get("/device", { 
                 params: { page, limit: 20, search: searchValue } 
             });
             setData(response.data.data || []);
@@ -87,7 +87,6 @@ export default function Device() {
         setActiveTab("info");
         setUsageMT([]);
         setUsageRele([]);
-        // Optional: fetch usage if API exists
     };
 
     const handleTabChange = async (tab: DetailTab) => {
@@ -99,24 +98,34 @@ export default function Device() {
     };
 
     const loadUsage = async (device: DeviceProsis) => {
-        setDetailLoading(true);
-        try {
-            // Placeholder: The PRD mentions to build the UI structure so it is ready for the real backend API.
-            // Since there is no reverse-relationship API right now, we will leave this empty.
-            // If the API were created, it might look like:
-            // const res = await api.get(`/devices/${device.no}/usage`);
-            // setUsageMT(res.data.mt || []);
-            // setUsageRele(res.data.rele || []);
-            
-            setUsageMT([]);
-            setUsageRele([]);
-        } catch (error) {
-            console.error(`Gagal memuat detail usage:`, error);
-        } finally {
-            setDetailLoading(false);
-        }
-    };
+    setDetailLoading(true);
 
+    try {
+        const response = await api.get(
+            `/devices/${device.no}/usage`
+        );
+
+        setUsageMT(
+            response.data?.mt || []
+        );
+
+        setUsageRele(
+            response.data?.rele || []
+        );
+
+    } catch (error) {
+        console.error(
+            "Gagal memuat detail usage:",
+            error
+        );
+
+        setUsageMT([]);
+        setUsageRele([]);
+
+    } finally {
+        setDetailLoading(false);
+    }
+};
 
     // ========================================
     // HELPERS
