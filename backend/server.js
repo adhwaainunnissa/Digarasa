@@ -12,7 +12,8 @@ const skemaRoutes = require("./routes/skemaRoutes");
 
 const authMiddleware =
     require("./middleware/authMiddleware");
-
+const deviceRoutes =
+    require("./routes/deviceRoutes");
 const app = express();
 
 
@@ -118,6 +119,14 @@ app.use(
     "/api",
     authMiddleware,
     tableRoutes
+);
+
+// ========================================
+// DEVICE
+// ========================================
+app.use(
+    "/api/device",
+    deviceRoutes
 );
 
 
