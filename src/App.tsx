@@ -14,7 +14,7 @@ import ProtectedRoute from "./pages/ProtectedRoute";
 import Profile from "./pages/Profile";
 import MainLayout from "./layouts/MainLayout";
 import Skema from "./pages/Skema";
-
+import Device from "./pages/Device";
 
 // ======================================================
 // GRAFANA PAGE
@@ -150,6 +150,14 @@ function App() {
                         <Route
                             path="/skema"
                             element={<Skema />}
+                        />
+
+
+                        {/* DEVICE */}
+
+                        <Route
+                            path="/device"
+                            element={<Device />}
                         />
 
 

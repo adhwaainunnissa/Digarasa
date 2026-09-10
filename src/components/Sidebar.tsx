@@ -9,6 +9,7 @@ import {
     LogOut,
     PanelLeftClose,
     PanelLeftOpen,
+    Cpu,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -50,6 +51,11 @@ export default function Sidebar() {
             name: "Skema",
             path: "/skema",
             icon: <Waypoints className="h-5 w-5" />,
+        },
+        {
+            name: "Device",
+            path: "/device",
+            icon: <Cpu className="h-5 w-5" />,
         },
         {
             name: "Grafana",

@@ -1,16 +1,16 @@
 import { useEffect, useState, useMemo } from "react";
 import api from "../api/axios";
-import { 
-    Users as UsersIcon, 
-    Shield, 
-    User, 
-    Search, 
-    Plus, 
-    Trash2, 
-    X, 
-    AlertCircle, 
-    RefreshCw, 
-    CheckCircle2 
+import {
+    Users as UsersIcon,
+    Shield,
+    User,
+    Search,
+    Plus,
+    Trash2,
+    X,
+    AlertCircle,
+    RefreshCw,
+    CheckCircle2
 } from "lucide-react";
 
 interface AdminUser {
@@ -35,7 +35,7 @@ export default function Users() {
     // ========================================
     const [showForm, setShowForm] = useState(false);
     const [saving, setSaving] = useState(false);
-    
+
     // FORM FIELDS
     const [username, setUsername] = useState("");
     const [nama, setNama] = useState("");
@@ -52,7 +52,7 @@ export default function Users() {
     // CURRENT USER (Untuk proteksi hapus diri sendiri)
     // ========================================
     const currentUser = useMemo(() => {
-        try { return JSON.parse(localStorage.getItem("user") || "null"); } 
+        try { return JSON.parse(localStorage.getItem("user") || "null"); }
         catch { return null; }
     }, []);
 
@@ -82,7 +82,7 @@ export default function Users() {
     // ========================================
     const filteredUsers = useMemo(() => {
         const keyword = search.toLowerCase();
-        return users.filter((user) => 
+        return users.filter((user) =>
             user.username.toLowerCase().includes(keyword) ||
             user.nama_lengkap.toLowerCase().includes(keyword) ||
             user.role.toLowerCase().includes(keyword)
@@ -136,10 +136,10 @@ export default function Users() {
                 password,
                 role,
             });
-            
+
             closeForm();
             await loadUsers();
-            
+
             // Optional: Show a temporary success toast instead of native alert if we had a toast system
             // For now, we just reload cleanly without an alert for a more seamless feel.
         } catch (error: any) {
@@ -177,7 +177,7 @@ export default function Users() {
 
     return (
         <div className="flex h-screen w-full flex-col bg-slate-50 overflow-hidden">
-            
+
             {/* ========================================
                 HEADER SECTION
             ======================================== */}
@@ -252,7 +252,7 @@ export default function Users() {
 
                     {/* TABLE SECTION */}
                     <div className="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col">
-                        
+
                         <div className="flex flex-col gap-4 border-b border-slate-200 p-5 md:flex-row md:items-center md:justify-between bg-slate-50/50 rounded-t-xl">
                             <div>
                                 <h2 className="text-base font-bold text-slate-900">Daftar Pengguna</h2>
@@ -372,7 +372,7 @@ export default function Users() {
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
-                        
+
                         <form onSubmit={handleAddUser} className="px-6 py-5 space-y-4">
                             <div>
                                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">Nama Lengkap</label>
@@ -415,7 +415,7 @@ export default function Users() {
                                     <option value="admin">Administrator (Akses Penuh)</option>
                                 </select>
                             </div>
-                            
+
                             <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                                 <button type="button" onClick={closeForm} disabled={saving} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50">
                                     Batal
