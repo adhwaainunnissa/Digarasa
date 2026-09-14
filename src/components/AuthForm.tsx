@@ -31,13 +31,13 @@ export default function AuthForm({
         <div className="flex w-full flex-col justify-center px-8 sm:px-16 md:px-20 lg:px-28 xl:px-32">
             {/* Header / Branding */}
             <div className="mb-10 flex flex-col items-start animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="mb-6 flex h-20 w-20 items-center justify-center">
-                <img
-                    src="/src/assets/logo-pln.png"
-                    alt="Logo PLN"
-                    className="h-full w-full object-contain"
-                />
-            </div>                
+                <div className="mb-6 flex h-20 w-20 items-center justify-center">
+                    <img
+                        src="/src/assets/logo-pln.png"
+                        alt="Logo PLN"
+                        className="h-full w-full object-contain"
+                    />
+                </div>
                 <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                     FASOP
                 </h2>
@@ -53,7 +53,7 @@ export default function AuthForm({
             </div>
 
             {/* Error Message */}
-            <div 
+            <div
                 className={`mb-6 overflow-hidden transition-all duration-300 ease-in-out ${error ? 'max-h-24 opacity-100' : 'max-h-0 opacity-0'}`}
             >
                 <div className="flex items-center gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-600 shadow-sm">
@@ -136,7 +136,7 @@ export default function AuthForm({
                     <span className={`flex items-center gap-2 transition-all duration-300 ${loading ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
                         Sign in to Dashboard
                     </span>
-                    
+
                     {loading && !isSuccess && (
                         <span className="absolute inset-0 flex items-center justify-center">
                             <Loader2 className="h-5 w-5 animate-spin" />

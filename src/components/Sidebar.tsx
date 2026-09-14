@@ -10,6 +10,9 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     Cpu,
+    Zap,
+    ShieldAlert,
+    Gauge,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -56,6 +59,21 @@ export default function Sidebar() {
             name: "Device",
             path: "/device",
             icon: <Cpu className="h-5 w-5" />,
+        },
+        {
+            name: "OLS",
+            path: "/ols",
+            icon: <Zap className="h-5 w-5" />,
+        },
+        {
+            name: "UFR Step Relay",
+            path: "/ufr/step-relay",
+            icon: <ShieldAlert className="h-5 w-5" />,
+        },
+        {
+            name: "UFR Beban",
+            path: "/ufr/beban",
+            icon: <Gauge className="h-5 w-5" />,
         },
         {
             name: "Grafana",
