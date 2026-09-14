@@ -15,6 +15,9 @@ import Profile from "./pages/Profile";
 import MainLayout from "./layouts/MainLayout";
 import Skema from "./pages/Skema";
 import Device from "./pages/Device";
+import Ols from "./pages/Ols";
+import UfrStepRelay from "./pages/ufr/UfrStepRelay";
+import UfrBeban from "./pages/ufr/UfrBeban";
 
 // ======================================================
 // GRAFANA PAGE
@@ -158,6 +161,26 @@ function App() {
                         <Route
                             path="/device"
                             element={<Device />}
+                        />
+
+
+                        {/* OLS */}
+
+                        <Route
+                            path="/ols"
+                            element={<Ols />}
+                        />
+
+
+                        {/* UFR */}
+
+                        <Route
+                            path="/ufr/step-relay"
+                            element={<UfrStepRelay />}
+                        />
+                        <Route
+                            path="/ufr/beban"
+                            element={<UfrBeban />}
                         />
 
 
