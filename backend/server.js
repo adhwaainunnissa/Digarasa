@@ -9,6 +9,8 @@ const authRoutes = require("./routes/authRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const skemaRoutes = require("./routes/skemaRoutes");
+const olsRoutes = require("./routes/olsRoutes");
+const ufrRoutes = require("./routes/ufrRoutes");
 
 const authMiddleware =
     require("./middleware/authMiddleware");
@@ -107,6 +109,26 @@ app.use(
 app.use(
     "/api/skema",
     skemaRoutes
+);
+
+// ========================================
+// OLS
+// Endpoint di dalam route memakai JWT
+// ========================================
+
+app.use(
+    "/api/ols",
+    olsRoutes
+);
+
+// ========================================
+// UFR
+// Endpoint di dalam route memakai JWT
+// ========================================
+
+app.use(
+    "/api/ufr",
+    ufrRoutes
 );
 
 
