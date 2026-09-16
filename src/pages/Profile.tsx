@@ -468,8 +468,6 @@ export default function Profile() {
                                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                                     Profile & Security
                                 </h1>
-
-                                <Sparkles className="h-4 w-4 text-yellow-500" />
                             </div>
 
                             <p className="mt-1 text-sm font-medium text-slate-500">

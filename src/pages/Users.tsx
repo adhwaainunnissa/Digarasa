@@ -29,6 +29,7 @@ export default function Users() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [error, setError] = useState("");
+    const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
     // ========================================
     // STATE: MODAL (ADD USER)
@@ -176,7 +177,130 @@ export default function Users() {
     };
 
     return (
-        <div className="flex h-screen w-full flex-col bg-slate-50 overflow-hidden">
+        <div className="users-page flex h-screen w-full flex-col bg-slate-50 overflow-hidden">
+            <style>{`
+                @keyframes pageEnter {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
+                @keyframes borderGlow {
+                    0%, 100% {
+                        box-shadow: 0 0 0 rgba(37, 99, 235, 0),
+                                    0 0 10px rgba(37, 99, 235, 0.04);
+                    }
+                    50% {
+                        box-shadow: 0 0 18px rgba(37, 99, 235, 0.20),
+                                    0 0 38px rgba(37, 99, 235, 0.08);
+                    }
+                }
+
+                @keyframes borderLight {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
+
+                @keyframes rowEnter {
+                    from { opacity: 0; transform: translateY(8px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
+                .users-page {
+                    animation: pageEnter .55s cubic-bezier(.22,1,.36,1) both;
+                }
+
+                .glowing-border {
+                    position: relative;
+                    isolation: isolate;
+                    animation: borderGlow 3s ease-in-out infinite;
+                }
+
+                .glowing-border::before {
+                    content: "";
+                    position: absolute;
+                    inset: -1px;
+                    border-radius: inherit;
+                    padding: 1px;
+                    background: linear-gradient(
+                        90deg,
+                        rgba(37,99,235,.10),
+                        rgba(59,130,246,.80),
+                        rgba(250,204,21,.50),
+                        rgba(59,130,246,.80),
+                        rgba(37,99,235,.10)
+                    );
+                    background-size: 300% 300%;
+                    animation: borderLight 4s ease infinite;
+                    -webkit-mask:
+                        linear-gradient(#fff 0 0) content-box,
+                        linear-gradient(#fff 0 0);
+                    -webkit-mask-composite: xor;
+                    mask-composite: exclude;
+                    pointer-events: none;
+                    z-index: -1;
+                }
+
+                .glowing-border:hover {
+                    animation-duration: 1.5s;
+                    box-shadow: 0 0 24px rgba(37,99,235,.25),
+                                0 0 50px rgba(37,99,235,.10);
+                }
+
+                .user-row {
+                    cursor: pointer;
+                    transition: transform .25s ease, background-color .25s ease, box-shadow .25s ease;
+                }
+
+                .user-row:hover {
+                    transform: translateX(4px);
+                    background: rgba(239, 246, 255, .72);
+                    box-shadow: 0 6px 18px rgba(15, 23, 42, .06);
+                }
+
+                .user-row-selected {
+                    position: relative;
+                    transform: translateX(6px) scale(1.002);
+                    background: linear-gradient(90deg, rgba(239,246,255,.98), rgba(248,250,252,.96));
+                    box-shadow: 0 10px 28px rgba(37,99,235,.14), inset 4px 0 0 #3b82f6;
+                }
+
+                .user-row-selected td:first-child {
+                    color: #2563eb;
+                    font-weight: 700;
+                }
+
+                .user-row-selected .user-avatar {
+                    box-shadow: 0 0 0 4px rgba(59,130,246,.12), 0 6px 16px rgba(37,99,235,.18);
+                    transform: scale(1.08);
+                }
+
+                .user-avatar {
+                    transition: transform .25s ease, box-shadow .25s ease;
+                }
+
+                .user-row {
+                    animation: rowEnter .5s cubic-bezier(.22,1,.36,1) both;
+                }
+
+                .user-row:nth-child(1) { animation-delay: .05s; }
+                .user-row:nth-child(2) { animation-delay: .10s; }
+                .user-row:nth-child(3) { animation-delay: .15s; }
+                .user-row:nth-child(4) { animation-delay: .20s; }
+                .user-row:nth-child(5) { animation-delay: .25s; }
+                .user-row:nth-child(6) { animation-delay: .30s; }
+                .user-row:nth-child(7) { animation-delay: .35s; }
+                .user-row:nth-child(8) { animation-delay: .40s; }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .users-page,
+                    .glowing-border,
+                    .glowing-border::before,
+                    .user-row {
+                        animation: none !important;
+                    }
+                }
+`}</style>
 
             {/* ========================================
                 HEADER SECTION
@@ -184,7 +308,7 @@ export default function Users() {
             <header className="shrink-0 border-b border-slate-200 bg-white px-8 py-6">
                 <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shadow-sm border border-blue-100">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shadow-sm border border-blue-100 transition-transform duration-300 hover:scale-105">
                             <UsersIcon className="h-6 w-6" />
                         </div>
                         <div>
@@ -194,7 +318,7 @@ export default function Users() {
                     </div>
                     <button
                         onClick={openAddForm}
-                        className="flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                        className="flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                     >
                         <Plus className="h-4 w-4" />
                         Tambah User
@@ -218,7 +342,7 @@ export default function Users() {
 
                     {/* STATISTIK CARDS */}
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center gap-4">
+                        <div className="glowing-border rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center gap-4 transition-transform duration-300 hover:-translate-y-1">
                             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-500 border border-slate-100">
                                 <UsersIcon className="h-6 w-6" />
                             </div>
@@ -228,7 +352,7 @@ export default function Users() {
                             </div>
                         </div>
 
-                        <div className="rounded-xl border border-blue-100 bg-white p-6 shadow-sm flex items-center gap-4 relative overflow-hidden group">
+                        <div className="glowing-border rounded-xl border border-blue-100 bg-white p-6 shadow-sm flex items-center gap-4 relative overflow-hidden group transition-transform duration-300 hover:-translate-y-1">
                             <div className="absolute right-0 top-0 h-full w-1 bg-blue-500"></div>
                             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600">
                                 <Shield className="h-6 w-6" />
@@ -239,7 +363,7 @@ export default function Users() {
                             </div>
                         </div>
 
-                        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center gap-4">
+                        <div className="glowing-border rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center gap-4 transition-transform duration-300 hover:-translate-y-1">
                             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-600">
                                 <User className="h-6 w-6" />
                             </div>
@@ -251,7 +375,7 @@ export default function Users() {
                     </div>
 
                     {/* TABLE SECTION */}
-                    <div className="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col">
+                    <div className="glowing-border rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col">
 
                         <div className="flex flex-col gap-4 border-b border-slate-200 p-5 md:flex-row md:items-center md:justify-between bg-slate-50/50 rounded-t-xl">
                             <div>
@@ -306,13 +430,19 @@ export default function Users() {
                                         {filteredUsers.map((user, index) => {
                                             const isSelf = currentUser?.id === user.id;
                                             return (
-                                                <tr key={user.id} className="hover:bg-slate-50/80 transition-colors group">
+                                                <tr
+    key={user.id}
+    onClick={() => setSelectedUserId(selectedUserId === user.id ? null : user.id)}
+    className={`user-row group hover:bg-slate-50/80 ${
+        selectedUserId === user.id ? "user-row-selected" : ""
+    }`}
+>
                                                     <td className="px-6 py-4 font-mono text-xs text-slate-400">
                                                         {index + 1}
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-bold shadow-sm border ${user.role.toLowerCase() === 'admin' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                                                            <div className={`user-avatar flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-bold shadow-sm border ${user.role.toLowerCase() === 'admin' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
                                                                 {(user.nama_lengkap || user.username || "U").charAt(0).toUpperCase()}
                                                             </div>
                                                             <div className="flex flex-col">
@@ -337,9 +467,12 @@ export default function Users() {
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <button
-                                                            onClick={() => confirmDelete(user)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                confirmDelete(user);
+                                                            }}
                                                             disabled={isSelf}
-                                                            className="inline-flex items-center justify-center rounded p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                                                            className="inline-flex items-center justify-center rounded p-1.5 text-slate-400 transition-all duration-200 hover:scale-110 hover:bg-red-50 hover:text-red-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
                                                             title={isSelf ? "Tidak dapat menghapus akun sendiri" : "Hapus User"}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
@@ -362,7 +495,7 @@ export default function Users() {
             {showForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={closeForm} />
-                    <div className="relative w-full max-w-md transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all animate-in zoom-in-95 duration-200">
+                    <div className="glowing-border relative w-full max-w-md transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all animate-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-6 py-4">
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900">Tambah User Baru</h3>
@@ -436,7 +569,7 @@ export default function Users() {
             {userToDelete && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => !deleting && setUserToDelete(null)} />
-                    <div className="relative w-full max-w-sm transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all animate-in zoom-in-95 duration-200">
+                    <div className="glowing-border relative w-full max-w-sm transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all animate-in zoom-in-95 duration-200">
                         <div className="p-6 text-center">
                             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
                                 <AlertCircle className="h-7 w-7 text-red-600" />

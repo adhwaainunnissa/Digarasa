@@ -76,11 +76,6 @@ export default function Sidebar() {
             icon: <Gauge className="h-5 w-5" />,
         },
         {
-            name: "Grafana",
-            path: "/grafana",
-            icon: <LineChart className="h-5 w-5" />,
-        },
-        {
             name: "Profile",
             path: "/profile",
             icon: <UserCircle className="h-5 w-5" />,
