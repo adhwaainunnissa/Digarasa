@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
-import { 
+
+import {
     Zap,
     Settings,
     Activity,
     RefreshCw,
-    Info
+    Info,
 } from "lucide-react";
+
 import OlsStatus from "../components/ols/OlsStatus";
 import OlsConfig from "../components/ols/OlsConfig";
 import OlsHistory from "../components/ols/OlsHistory";
@@ -16,23 +18,29 @@ type Tab = "status" | "config" | "history";
 export default function Ols() {
     const [activeTab, setActiveTab] = useState<Tab>("status");
     const [loading, setLoading] = useState(false);
-    const [statusData, setStatusData] = useState([]);
-    const [configData, setConfigData] = useState([]);
-    
-    // We only load status and config here, history is managed inside OlsHistory component with pagination
+
+    const [statusData, setStatusData] = useState<any[]>([]);
+    const [configData, setConfigData] = useState<any[]>([]);
+
+    // ======================================================
+    // LOAD DATA
+    // ======================================================
+
     useEffect(() => {
         loadData();
     }, []);
 
     const loadData = async () => {
         setLoading(true);
+
         try {
             const [statusRes, configRes] = await Promise.all([
                 api.get("/ols/status"),
-                api.get("/ols/config")
+                api.get("/ols/config"),
             ]);
-            setStatusData(statusRes.data.data || []);
-            setConfigData(configRes.data.data || []);
+
+            setStatusData(statusRes.data?.data || []);
+            setConfigData(configRes.data?.data || []);
         } catch (error) {
             console.error("Gagal memuat data OLS:", error);
         } finally {
@@ -40,73 +48,378 @@ export default function Ols() {
         }
     };
 
+    // ======================================================
+    // EDIT
+    // ======================================================
+
+    const handleEdit = (item: any) => {
+        console.log("Edit data:", item);
+
+        alert(`Edit data dengan ID: ${item.id}`);
+    };
+
+    // ======================================================
+    // DELETE
+    // ======================================================
+
+    const handleDelete = async (item: any) => {
+        const confirmDelete = window.confirm(
+            "Apakah kamu yakin ingin menghapus data ini?"
+        );
+
+        if (!confirmDelete) return;
+
+        try {
+            await api.delete(`/ols/${item.id}`);
+
+            alert("Data berhasil dihapus");
+
+            loadData();
+        } catch (error) {
+            console.error("Gagal menghapus data:", error);
+            alert("Gagal menghapus data");
+        }
+    };
+
+    // ======================================================
+    // RENDER
+    // ======================================================
+
     return (
-        <div className="flex h-screen w-full flex-col bg-slate-50 overflow-hidden">
-            {/* Header */}
+        <div className="flex h-screen w-full flex-col overflow-hidden bg-slate-50">
+
+            {/* ==================================================
+                HEADER
+            ================================================== */}
+
             <header className="shrink-0 border-b border-slate-200 bg-white px-8 py-6">
+
                 <div className="mx-auto flex max-w-7xl items-center justify-between">
+
+                    {/* TITLE */}
+
                     <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-orange-600 shadow-sm border border-orange-100">
+
+                        <div
+                            className="
+                                flex h-12 w-12
+                                items-center justify-center
+                                rounded-xl
+                                border border-orange-100
+                                bg-orange-50
+                                text-orange-600
+                                shadow-sm
+                            "
+                        >
                             <Zap className="h-6 w-6" />
                         </div>
+
                         <div>
-                            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">OLS Monitoring</h1>
-                            <p className="mt-1 text-sm font-medium text-slate-500">Pemantauan dan konfigurasi Over Load Shedding</p>
+
+                            <h1
+                                className="
+                                    text-2xl
+                                    font-bold
+                                    tracking-tight
+                                    text-slate-900
+                                "
+                            >
+                                OLS Monitoring
+                            </h1>
+
+                            <p className="mt-1 text-sm font-medium text-slate-500">
+                                Pemantauan dan konfigurasi Over Load Shedding
+                            </p>
+
                         </div>
+
                     </div>
-                    <button 
+
+                    {/* REFRESH */}
+
+                    <button
+                        type="button"
                         onClick={loadData}
-                        className="flex items-center gap-2 rounded-md bg-white border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
                         disabled={loading}
+                        className="
+                            flex items-center gap-2
+                            rounded-md
+                            border border-slate-300
+                            bg-white
+                            px-4 py-2
+                            text-sm font-semibold
+                            text-slate-700
+                            shadow-sm
+                            transition-all
+                            duration-300
+                            hover:border-blue-300
+                            hover:bg-slate-50
+                            hover:text-blue-600
+                            disabled:cursor-not-allowed
+                            disabled:opacity-60
+                        "
                     >
-                        <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                        Refresh Data
+
+                        <RefreshCw
+                            className={`h-4 w-4 ${
+                                loading ? "animate-spin" : ""
+                            }`}
+                        />
+
+                        {loading ? "Memuat..." : "Refresh Data"}
+
                     </button>
+
                 </div>
+
             </header>
 
-            {/* Main Content */}
-            <main className="flex-1 overflow-hidden flex flex-col mx-auto w-full max-w-7xl p-8">
-                
-                {/* Tabs */}
-                <div className="flex gap-4 border-b border-slate-200 mb-6 shrink-0">
-                    {[
-                        { id: "status", label: "Status (Real-time)", icon: Activity },
-                        { id: "config", label: "Konfigurasi", icon: Settings },
-                        { id: "history", label: "Riwayat", icon: Info },
-                    ].map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as Tab)}
-                            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
-                                activeTab === tab.id
-                                    ? "border-blue-600 text-blue-700 bg-blue-50/50 rounded-t-lg"
-                                    : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800"
-                            }`}
-                        >
-                            <tab.icon className={`h-4 w-4 ${activeTab === tab.id ? "text-blue-600" : ""}`} />
-                            {tab.label}
-                        </button>
-                    ))}
+            {/* ==================================================
+                MAIN CONTENT
+            ================================================== */}
+
+            <main
+                className="
+                    mx-auto
+                    flex w-full max-w-7xl
+                    flex-1 flex-col
+                    overflow-hidden
+                    p-8
+                "
+            >
+
+                {/* ==================================================
+                    TABS
+                ================================================== */}
+
+                <div
+                    className="
+                        mb-6
+                        flex shrink-0
+                        gap-4
+                        border-b border-slate-200
+                    "
+                >
+
+                    {/* STATUS */}
+
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab("status")}
+                        className={`
+                            flex items-center gap-2
+                            border-b-2
+                            px-4 py-3
+                            text-sm font-semibold
+                            transition-all
+                            duration-300
+                            ${
+                                activeTab === "status"
+                                    ? `
+                                        rounded-t-lg
+                                        border-blue-600
+                                        bg-blue-50/50
+                                        text-blue-700
+                                    `
+                                    : `
+                                        border-transparent
+                                        text-slate-500
+                                        hover:border-slate-300
+                                        hover:text-slate-800
+                                    `
+                            }
+                        `}
+                    >
+
+                        <Activity
+                            className={`
+                                h-4 w-4
+                                ${
+                                    activeTab === "status"
+                                        ? "text-blue-600"
+                                        : "text-slate-400"
+                                }
+                            `}
+                        />
+
+                        Status (Real-time)
+
+                    </button>
+
+                    {/* CONFIG */}
+
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab("config")}
+                        className={`
+                            flex items-center gap-2
+                            border-b-2
+                            px-4 py-3
+                            text-sm font-semibold
+                            transition-all
+                            duration-300
+                            ${
+                                activeTab === "config"
+                                    ? `
+                                        rounded-t-lg
+                                        border-blue-600
+                                        bg-blue-50/50
+                                        text-blue-700
+                                    `
+                                    : `
+                                        border-transparent
+                                        text-slate-500
+                                        hover:border-slate-300
+                                        hover:text-slate-800
+                                    `
+                            }
+                        `}
+                    >
+
+                        <Settings
+                            className={`
+                                h-4 w-4
+                                ${
+                                    activeTab === "config"
+                                        ? "text-blue-600"
+                                        : "text-slate-400"
+                                }
+                            `}
+                        />
+
+                        Konfigurasi
+
+                    </button>
+
+                    {/* HISTORY */}
+
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab("history")}
+                        className={`
+                            flex items-center gap-2
+                            border-b-2
+                            px-4 py-3
+                            text-sm font-semibold
+                            transition-all
+                            duration-300
+                            ${
+                                activeTab === "history"
+                                    ? `
+                                        rounded-t-lg
+                                        border-blue-600
+                                        bg-blue-50/50
+                                        text-blue-700
+                                    `
+                                    : `
+                                        border-transparent
+                                        text-slate-500
+                                        hover:border-slate-300
+                                        hover:text-slate-800
+                                    `
+                            }
+                        `}
+                    >
+
+                        <Info
+                            className={`
+                                h-4 w-4
+                                ${
+                                    activeTab === "history"
+                                        ? "text-blue-600"
+                                        : "text-slate-400"
+                                }
+                            `}
+                        />
+
+                        Riwayat
+
+                    </button>
+
                 </div>
 
-                {/* Tab Content */}
-                <div className="flex-1 overflow-hidden bg-white border border-slate-200 rounded-xl shadow-sm">
+                {/* ==================================================
+                    CONTENT
+                ================================================== */}
+
+                <div
+                    className="
+                        flex-1
+                        overflow-hidden
+                        rounded-xl
+                        border border-slate-200
+                        bg-white
+                        shadow-sm
+                    "
+                >
+
+                    {/* LOADING */}
+
                     {loading && activeTab !== "history" ? (
-                        <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-2">
-                            <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />
-                            <span className="text-sm font-medium">Memuat data...</span>
+
+                        <div
+                            className="
+                                flex h-full
+                                flex-col
+                                items-center
+                                justify-center
+                                gap-2
+                                text-slate-400
+                            "
+                        >
+
+                            <RefreshCw
+                                className="
+                                    h-6 w-6
+                                    animate-spin
+                                    text-blue-500
+                                "
+                            />
+
+                            <span className="text-sm font-medium">
+                                Memuat data...
+                            </span>
+
                         </div>
+
                     ) : (
-                        <div className="h-full overflow-hidden flex flex-col">
-                            {activeTab === "status" && <OlsStatus data={statusData} />}
-                            {activeTab === "config" && <OlsConfig data={configData} />}
-                            {activeTab === "history" && <OlsHistory />}
+
+                        <div className="flex h-full flex-col overflow-hidden">
+
+                            {/* STATUS */}
+
+                            {activeTab === "status" && (
+                                <OlsStatus
+                                    data={statusData}
+                                    onEdit={handleEdit}
+                                    onDelete={handleDelete}
+                                />
+                            )}
+
+                            {/* CONFIG */}
+
+                            {activeTab === "config" && (
+                                <OlsConfig
+                                    data={configData}
+                                    onEdit={handleEdit}
+                                    onDelete={handleDelete}
+                                />
+                            )}
+
+                            {/* HISTORY */}
+
+                            {activeTab === "history" && (
+                                <OlsHistory />
+                            )}
+
                         </div>
+
                     )}
+
                 </div>
 
             </main>
+
         </div>
     );
 }
