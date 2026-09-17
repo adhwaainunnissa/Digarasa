@@ -33,3 +33,52 @@ exports.getOlsHistory = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.updateOls = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const data = await olsService.updateOls(id, req.body);
+
+        res.status(200).json({
+            success: true,
+            message: "Data OLS berhasil diperbarui",
+            data,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+exports.deleteOls = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const data = await olsService.deleteOls(id);
+
+        res.status(200).json({
+            success: true,
+            message: "Data OLS berhasil dihapus",
+            data,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ========================================
+// CREATE OLS
+// ========================================
+exports.createOls = async (req, res, next) => {
+    try {
+        const data = await olsService.createOls(req.body);
+
+        res.status(201).json({
+            success: true,
+            message: "Data OLS berhasil ditambahkan",
+            data,
+        });
+    } catch (error) {
+        next(error);
+    }
+};

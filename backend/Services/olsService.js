@@ -59,6 +59,53 @@ exports.getOlsConfig = async () => {
     
     return result.rows;
 };
+    // ========================================
+// UPDATE OLS
+// ========================================
+exports.updateOls = async (id, data) => {
+    const { skema, gi, target, tahap } = data;
+
+    const result = await db.query(
+        `
+        UPDATE "OLS_STATIK"
+        SET
+            skema = $1,
+            gi = $2,
+            target = $3,
+            tahap = $4
+        WHERE id_sw = $5
+        RETURNING *
+        `,
+        [skema, gi, target, tahap, id]
+    );
+
+    if (result.rows.length === 0) {
+        throw new Error("Data OLS tidak ditemukan");
+    }
+
+    return result.rows[0];
+};
+
+
+// ========================================
+// DELETE OLS
+// ========================================
+exports.deleteOls = async (id) => {
+    const result = await db.query(
+        `
+        DELETE FROM "OLS_STATIK"
+        WHERE id_sw = $1
+        RETURNING *
+        `,
+        [id]
+    );
+
+    if (result.rows.length === 0) {
+        throw new Error("Data OLS tidak ditemukan");
+    }
+
+    return result.rows[0];
+};
 
 // ========================================
 // OLS HISTORY (Paginated with filters)

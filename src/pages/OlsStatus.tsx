@@ -10,6 +10,7 @@ import {
     RefreshCw,
 } from "lucide-react";
 
+
 interface OlsStatusProps {
     data: any[];
 }
@@ -154,15 +155,16 @@ export default function OlsStatus({
         if (!selectedItem) return;
 
         const id = getValue(
-            selectedItem,
-            [
-                "id",
-                "ID",
-                "ols_id",
-                "id_ols",
-            ],
-            ""
-        );
+          selectedItem,
+    [
+        "id_sw",
+        "id",
+        "ID",
+        "ols_id",
+        "id_ols",
+    ],
+    ""
+    );
 
         if (!id) {
             alert("ID data OLS tidak ditemukan.");
@@ -174,7 +176,7 @@ export default function OlsStatus({
         try {
 
             await api.put(
-                `/ols/config/${id}`,
+            `/ols/${id}`,
                 {
                     nama: editForm.nama,
                     gi: editForm.gi,
@@ -295,16 +297,17 @@ export default function OlsStatus({
 
         if (!selectedItem) return;
 
-        const id = getValue(
-            selectedItem,
-            [
-                "id",
-                "ID",
-                "ols_id",
-                "id_ols",
-            ],
-            ""
-        );
+       const id = getValue(
+    selectedItem,
+    [
+        "id_sw",
+        "id",
+        "ID",
+        "ols_id",
+        "id_ols",
+    ],
+    ""
+);
 
         if (!id) {
 
@@ -326,17 +329,18 @@ export default function OlsStatus({
             setItems((prev) =>
                 prev.filter((item) => {
 
-                    const itemId =
-                        getValue(
-                            item,
-                            [
-                                "id",
-                                "ID",
-                                "ols_id",
-                                "id_ols",
-                            ],
-                            ""
-                        );
+                    const id =
+                getValue(
+                item,
+                [
+                  "id_sw",
+                  "id",
+                  "ID",
+                  "ols_id",
+                   "id_ols",
+                  ],
+                String(index + 1)
+             );
 
                     return (
                         String(itemId) !==
@@ -438,6 +442,13 @@ export default function OlsStatus({
                                 STATUS
                             </th>
 
+                            <th className="px-8 py-5 text-center text-sm font-bold text-slate-600">
+                                 ACTIONS
+                            </th>
+
+                            <th className="px-6 py-5 text-left text-sm font-bold text-slate-600">
+                                UPDATE TERAKHIR
+                            </th>
                         </tr>
 
                     </thead>
@@ -658,7 +669,7 @@ export default function OlsStatus({
                                                 items-center
                                                 gap-4
                                             ">
-
+ 
                                                 {/* STATUS */}
 
                                                 <span
@@ -710,18 +721,10 @@ export default function OlsStatus({
                                                 {/* ACTION */}
 
                                                 <div className="
-                                                    flex
+                                                 flex
                                                     items-center
                                                     gap-2
-                                                    opacity-0
-                                                    translate-x-2
-                                                    pointer-events-none
-                                                    transition-all
-                                                    duration-200
-                                                    group-hover:opacity-100
-                                                    group-hover:translate-x-0
-                                                    group-hover:pointer-events-auto
-                                                ">
+                                                    ">
 
                                                     {/* EDIT */}
 
