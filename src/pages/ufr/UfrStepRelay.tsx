@@ -1,19 +1,109 @@
 import { useEffect, useState } from "react";
-import { Activity, RefreshCw, Search, ShieldAlert } from "lucide-react";
+import {
+    Activity,
+    RefreshCw,
+    Search,
+    ShieldAlert,
+} from "lucide-react";
+
 import { getUfrStepRelay } from "../../services/api/ufrService";
-import type { UfrStepData, PaginationMeta } from "../../services/api/ufrService";
+
+import type {
+    UfrStepData,
+    PaginationMeta,
+} from "../../services/api/ufrService";
+
+type StepButtonProps = {
+    value: number;
+    active: boolean;
+    onClick: () => void;
+};
+
+function StepButton({
+    value,
+    active,
+    onClick,
+}: StepButtonProps) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`
+                relative overflow-hidden
+                rounded-lg px-4 py-2
+                text-sm font-semibold
+                transition-all duration-300
+                ${
+                    active
+                        ? `
+                            bg-gradient-to-r
+                            from-[#0066FF] to-[#00BFFF]
+                            text-white
+                            shadow-md shadow-blue-200
+                            hover:-translate-y-0.5
+                            hover:shadow-lg
+                            hover:shadow-blue-300
+                        `
+                        : `
+                            bg-white
+                            text-[#52627A]
+                            hover:bg-[#F0F7FF]
+                            hover:text-[#0066FF]
+                        `
+                }
+            `}
+        >
+            {active && (
+                <span
+                    className="
+                        absolute inset-0
+                        -translate-x-full
+                        bg-gradient-to-r
+                        from-transparent
+                        via-white/20
+                        to-transparent
+                        animate-[ufrStepShimmer_2.5s_infinite]
+                    "
+                />
+            )}
+
+            <span className="relative z-10 flex items-center gap-2">
+                <span
+                    className={`
+                        h-1.5 w-1.5 rounded-full
+                        ${
+                            active
+                                ? `
+                                    bg-[#FFD600]
+                                    shadow-[0_0_8px_rgba(255,214,0,0.9)]
+                                `
+                                : "bg-[#00BFFF]"
+                        }
+                    `}
+                />
+
+                Step {value}
+            </span>
+        </button>
+    );
+}
 
 export default function UfrStepRelay() {
     const [step, setStep] = useState<number>(1);
+
     const [data, setData] = useState<UfrStepData[]>([]);
+
     const [loading, setLoading] = useState<boolean>(true);
+
     const [search, setSearch] = useState<string>("");
-    const [pagination, setPagination] = useState<PaginationMeta>({
-        page: 1,
-        limit: 100,
-        total: 0,
-        totalPages: 0,
-    });
+
+    const [pagination, setPagination] =
+        useState<PaginationMeta>({
+            page: 1,
+            limit: 100,
+            total: 0,
+            totalPages: 0,
+        });
 
     const steps = [1, 4, 5, 6, 7];
 
@@ -21,153 +111,711 @@ export default function UfrStepRelay() {
         const debounce = setTimeout(() => {
             loadData(1);
         }, 500);
+
         return () => clearTimeout(debounce);
     }, [search, step]);
 
-    const loadData = async (pageToLoad: number = pagination.page) => {
+    const loadData = async (
+        pageToLoad: number = pagination.page
+    ) => {
         setLoading(true);
+
         try {
-            const result = await getUfrStepRelay(step, pageToLoad, pagination.limit, search);
+            const result = await getUfrStepRelay(
+                step,
+                pageToLoad,
+                pagination.limit,
+                search
+            );
+
             setData(result.data);
             setPagination(result.pagination);
         } catch (error) {
-            console.error("Gagal memuat data UFR Step Relay:", error);
+            console.error(
+                "Gagal memuat data UFR Step Relay:",
+                error
+            );
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="flex h-screen w-full flex-col bg-slate-50 overflow-hidden">
-            {/* Header */}
-            <header className="shrink-0 border-b border-slate-200 bg-white px-8 py-6">
-                <div className="mx-auto flex max-w-7xl items-center justify-between">
+        <div
+            className="
+                relative flex h-screen w-full
+                flex-col overflow-hidden
+                bg-[#F5F9FF]
+            "
+        >
+            {/* =========================================================
+                DECORATIVE BACKGROUND
+            ========================================================= */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div
+                    className="
+                        absolute -left-24 -top-24
+                        h-72 w-72 rounded-full
+                        bg-[#00BFFF]/10 blur-3xl
+                        animate-[ufrStepBlobFloat_8s_ease-in-out_infinite]
+                    "
+                />
+
+                <div
+                    className="
+                        absolute -right-20 top-32
+                        h-64 w-64 rounded-full
+                        bg-[#0066FF]/10 blur-3xl
+                        animate-[ufrStepBlobFloat_10s_ease-in-out_infinite_reverse]
+                    "
+                />
+
+                <div
+                    className="
+                        absolute bottom-0 left-1/3
+                        h-56 w-56 rounded-full
+                        bg-[#FFD600]/10 blur-3xl
+                        animate-[ufrStepBlobFloat_9s_ease-in-out_infinite]
+                    "
+                />
+            </div>
+
+            {/* =========================================================
+                HEADER
+            ========================================================= */}
+            <header
+                className="
+                    relative z-10 shrink-0
+                    border-b border-[#CFE2FF]
+                    bg-white/95
+                    px-8 py-6
+                    shadow-[0_4px_20px_rgba(0,102,255,0.06)]
+                    backdrop-blur-sm
+                "
+            >
+                <div
+                    className="
+                        mx-auto flex max-w-7xl
+                        items-center justify-between
+                    "
+                >
+                    {/* TITLE */}
                     <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 shadow-sm border border-red-100">
-                            <ShieldAlert className="h-6 w-6" />
+                        <div
+                            className="
+                                relative flex h-12 w-12
+                                items-center justify-center
+                                overflow-hidden rounded-xl
+                                bg-gradient-to-br
+                                from-[#0066FF]
+                                via-[#00AEEF]
+                                to-[#082B5F]
+                                text-white
+                                shadow-lg shadow-blue-200
+                            "
+                        >
+                            <ShieldAlert className="relative z-10 h-6 w-6" />
+
+                            <span
+                                className="
+                                    absolute -right-1 -top-1
+                                    h-4 w-4 rounded-full
+                                    bg-[#FFD600]
+                                    shadow-[0_0_12px_rgba(255,214,0,0.9)]
+                                    animate-pulse
+                                "
+                            />
                         </div>
+
                         <div>
-                            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">UFR Step Relay</h1>
-                            <p className="mt-1 text-sm font-medium text-slate-500">Under Frequency Relay - Monitoring Tahapan (Read Only)</p>
+                            <div className="flex items-center gap-2">
+                                <h1
+                                    className="
+                                        text-2xl font-bold
+                                        tracking-tight
+                                        text-[#082B5F]
+                                    "
+                                >
+                                    UFR Step Relay
+                                </h1>
+
+                                <span
+                                    className="
+                                        rounded-full
+                                        border border-[#BFE9FF]
+                                        bg-[#EAF9FF]
+                                        px-2.5 py-1
+                                        text-[10px] font-bold
+                                        uppercase tracking-wider
+                                        text-[#008FC7]
+                                    "
+                                >
+                                    Read Only
+                                </span>
+                            </div>
+
+                            <p
+                                className="
+                                    mt-1 text-sm font-medium
+                                    text-[#718096]
+                                "
+                            >
+                                Under Frequency Relay -
+                                Monitoring Tahapan
+                            </p>
                         </div>
                     </div>
-                    <button 
-                        onClick={() => loadData(pagination.page)}
-                        className="flex items-center gap-2 rounded-md bg-white border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+
+                    {/* REFRESH */}
+                    <button
+                        type="button"
+                        onClick={() =>
+                            loadData(pagination.page)
+                        }
                         disabled={loading}
+                        className="
+                            group flex items-center gap-2
+                            rounded-lg
+                            border border-[#BFD8FF]
+                            bg-white
+                            px-4 py-2.5
+                            text-sm font-semibold
+                            text-[#0066FF]
+                            shadow-sm
+                            transition-all duration-300
+                            hover:-translate-y-0.5
+                            hover:border-[#00BFFF]
+                            hover:bg-[#F0F8FF]
+                            hover:shadow-md
+                            hover:shadow-blue-100
+                            disabled:cursor-not-allowed
+                            disabled:opacity-60
+                        "
                     >
-                        <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                        Refresh Data
+                        <RefreshCw
+                            className={`
+                                h-4 w-4
+                                transition-transform duration-300
+                                ${
+                                    loading
+                                        ? "animate-spin"
+                                        : "group-hover:rotate-180"
+                                }
+                            `}
+                        />
+
+                        {loading
+                            ? "Memuat..."
+                            : "Refresh Data"}
                     </button>
                 </div>
             </header>
 
-            {/* Main Content */}
-            <main className="flex-1 overflow-hidden flex flex-col mx-auto w-full max-w-7xl p-8">
-                
-                {/* Controls */}
-                <div className="flex items-center justify-between mb-6 shrink-0">
-                    <div className="flex gap-2 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+            {/* =========================================================
+                MAIN CONTENT
+            ========================================================= */}
+            <main
+                className="
+                    relative z-10
+                    mx-auto flex w-full max-w-7xl
+                    flex-1 flex-col
+                    overflow-hidden
+                    p-8
+                "
+            >
+                {/* =====================================================
+                    CONTROLS
+                ===================================================== */}
+                <div
+                    className="
+                        mb-6 flex shrink-0
+                        items-center justify-between
+                        gap-4
+                    "
+                >
+                    {/* STEP SELECTOR */}
+                    <div
+                        className="
+                            flex gap-1.5
+                            rounded-xl
+                            border border-[#CFE2FF]
+                            bg-white/95
+                            p-1.5
+                            shadow-[0_4px_18px_rgba(0,102,255,0.07)]
+                            backdrop-blur-sm
+                        "
+                    >
                         {steps.map((s) => (
-                            <button
+                            <StepButton
                                 key={s}
+                                value={s}
+                                active={step === s}
                                 onClick={() => setStep(s)}
-                                className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                                    step === s
-                                        ? "bg-red-50 text-red-700 shadow-sm"
-                                        : "text-slate-600 hover:bg-slate-100"
-                                }`}
-                            >
-                                Step {s}
-                            </button>
+                            />
                         ))}
                     </div>
 
-                    <div className="relative w-72">
-                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <Search className="h-4 w-4 text-slate-400" />
+                    {/* SEARCH */}
+                    <div className="relative w-80">
+                        <div
+                            className="
+                                pointer-events-none
+                                absolute inset-y-0 left-0
+                                flex items-center pl-3
+                            "
+                        >
+                            <Search
+                                className="
+                                    h-4 w-4
+                                    text-[#00AEEF]
+                                "
+                            />
                         </div>
+
                         <input
                             type="text"
-                            className="block w-full rounded-md border-0 py-2 pl-10 pr-3 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-red-600 sm:text-sm sm:leading-6 shadow-sm"
+                            className="
+                                block w-full rounded-lg
+                                border border-[#CFE2FF]
+                                bg-white
+                                py-2.5 pl-10 pr-4
+                                text-sm text-[#082B5F]
+                                shadow-sm
+                                outline-none
+                                placeholder:text-[#9AA9BC]
+                                transition-all duration-300
+                                focus:border-[#00BFFF]
+                                focus:ring-2
+                                focus:ring-[#00BFFF]/20
+                                focus:shadow-[0_0_0_1px_rgba(0,191,255,0.15)]
+                            "
                             placeholder="Cari Tag, GI, atau Target..."
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={(e) =>
+                                setSearch(e.target.value)
+                            }
                         />
                     </div>
                 </div>
 
-                {/* Table Area */}
-                <div className="flex-1 overflow-hidden bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col">
-                    <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-slate-200">
-                        <table className="w-full text-left text-sm whitespace-nowrap">
-                            <thead className="bg-slate-50 text-xs font-semibold text-slate-600 uppercase tracking-wider sticky top-0 z-10 border-b border-slate-200 shadow-sm">
+                {/* =====================================================
+                    TABLE AREA
+                ===================================================== */}
+                <div
+                    className="
+                        flex flex-1 flex-col
+                        overflow-hidden
+                        rounded-xl
+                        border border-[#CFE2FF]
+                        bg-white/95
+                        shadow-[0_8px_30px_rgba(0,102,255,0.08)]
+                        backdrop-blur-sm
+                        animate-[ufrStepPageEnter_0.5s_ease-out]
+                    "
+                >
+                    <div
+                        className="
+                            flex-1 overflow-auto
+                            scrollbar-thin
+                            scrollbar-thumb-[#CFE2FF]
+                            scrollbar-track-transparent
+                        "
+                    >
+                        <table
+                            className="
+                                w-full whitespace-nowrap
+                                text-left text-sm
+                            "
+                        >
+                            {/* =================================================
+                                TABLE HEADER
+                            ================================================= */}
+                            <thead
+                                className="
+                                    sticky top-0 z-10
+                                    border-b border-[#CFE2FF]
+                                    bg-[#F3F8FF]
+                                    text-xs font-bold
+                                    uppercase tracking-wider
+                                    text-[#49627E]
+                                    shadow-sm
+                                "
+                            >
                                 <tr>
-                                    <th className="px-6 py-4">Tag Name</th>
-                                    <th className="px-6 py-4">Gardu Induk (GI)</th>
-                                    <th className="px-6 py-4">Target / TRF</th>
-                                    <th className="px-6 py-4">Value</th>
-                                    <th className="px-6 py-4">Quality</th>
-                                    <th className="px-6 py-4">Waktu</th>
+                                    <th className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className="
+                                                    h-1.5 w-1.5
+                                                    rounded-full
+                                                    bg-[#00BFFF]
+                                                "
+                                            />
+                                            Tag Name
+                                        </div>
+                                    </th>
+
+                                    <th className="px-6 py-4">
+                                        Gardu Induk (GI)
+                                    </th>
+
+                                    <th className="px-6 py-4">
+                                        Target / TRF
+                                    </th>
+
+                                    <th className="px-6 py-4">
+                                        Value
+                                    </th>
+
+                                    <th className="px-6 py-4">
+                                        Quality
+                                    </th>
+
+                                    <th className="px-6 py-4">
+                                        Waktu
+                                    </th>
+
                                     {step === 1 && (
                                         <>
-                                            <th className="px-6 py-4">Value CB</th>
-                                            <th className="px-6 py-4">Time CB</th>
+                                            <th className="px-6 py-4">
+                                                Value CB
+                                            </th>
+
+                                            <th className="px-6 py-4">
+                                                Time CB
+                                            </th>
                                         </>
                                     )}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+
+                            {/* =================================================
+                                TABLE BODY
+                            ================================================= */}
+                            <tbody className="divide-y divide-[#E7F0FC]">
+                                {/* LOADING */}
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
-                                            <div className="flex flex-col items-center justify-center">
-                                                <RefreshCw className="h-6 w-6 animate-spin text-red-500 mb-2" />
-                                                <span className="font-medium">Memuat data UFR Step {step}...</span>
+                                        <td
+                                            colSpan={
+                                                step === 1 ? 8 : 6
+                                            }
+                                            className="
+                                                px-6 py-16
+                                                text-center
+                                                text-[#718096]
+                                            "
+                                        >
+                                            <div
+                                                className="
+                                                    flex flex-col
+                                                    items-center
+                                                    justify-center
+                                                "
+                                            >
+                                                <div
+                                                    className="
+                                                        relative mb-4
+                                                        flex h-12 w-12
+                                                        items-center
+                                                        justify-center
+                                                        rounded-full
+                                                        bg-[#EAF5FF]
+                                                    "
+                                                >
+                                                    <RefreshCw
+                                                        className="
+                                                            h-6 w-6
+                                                            animate-spin
+                                                            text-[#0066FF]
+                                                        "
+                                                    />
+
+                                                    <span
+                                                        className="
+                                                            absolute
+                                                            -right-1
+                                                            -top-1
+                                                            h-3 w-3
+                                                            rounded-full
+                                                            bg-[#FFD600]
+                                                            shadow-[0_0_8px_rgba(255,214,0,0.8)]
+                                                            animate-pulse
+                                                        "
+                                                    />
+                                                </div>
+
+                                                <span
+                                                    className="
+                                                        font-semibold
+                                                        text-[#49627E]
+                                                    "
+                                                >
+                                                    Memuat data UFR
+                                                    Step {step}...
+                                                </span>
+
+                                                <span
+                                                    className="
+                                                        mt-1 text-xs
+                                                        text-[#94A3B8]
+                                                    "
+                                                >
+                                                    Mengambil data
+                                                    monitoring
+                                                </span>
                                             </div>
                                         </td>
                                     </tr>
                                 ) : data.length === 0 ? (
+                                    /* EMPTY */
                                     <tr>
-                                        <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
-                                            <div className="flex flex-col items-center justify-center">
-                                                <Activity className="h-8 w-8 text-slate-300 mb-3" />
-                                                <span className="text-sm font-medium">Tidak ada data ditemukan untuk Step {step}</span>
+                                        <td
+                                            colSpan={
+                                                step === 1 ? 8 : 6
+                                            }
+                                            className="
+                                                px-6 py-16
+                                                text-center
+                                                text-[#718096]
+                                            "
+                                        >
+                                            <div
+                                                className="
+                                                    flex flex-col
+                                                    items-center
+                                                    justify-center
+                                                "
+                                            >
+                                                <div
+                                                    className="
+                                                        mb-4
+                                                        flex h-14 w-14
+                                                        items-center
+                                                        justify-center
+                                                        rounded-2xl
+                                                        border
+                                                        border-[#D8EAFF]
+                                                        bg-[#F0F7FF]
+                                                    "
+                                                >
+                                                    <Activity
+                                                        className="
+                                                            h-7 w-7
+                                                            text-[#7DB8FF]
+                                                        "
+                                                    />
+                                                </div>
+
+                                                <span
+                                                    className="
+                                                        text-sm
+                                                        font-semibold
+                                                        text-[#49627E]
+                                                    "
+                                                >
+                                                    Tidak ada data
+                                                    ditemukan
+                                                </span>
+
+                                                <span
+                                                    className="
+                                                        mt-1 text-xs
+                                                        text-[#94A3B8]
+                                                    "
+                                                >
+                                                    Tidak ada data
+                                                    untuk Step {step}
+                                                </span>
                                             </div>
                                         </td>
                                     </tr>
                                 ) : (
+                                    /* DATA */
                                     data.map((row, idx) => (
-                                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4 font-mono text-xs text-blue-600 bg-blue-50/30">
-                                                {row.tag_name || "-"}
+                                        <tr
+                                            key={idx}
+                                            className="
+                                                group
+                                                transition-all
+                                                duration-200
+                                                hover:bg-[#F4F9FF]
+                                            "
+                                        >
+                                            {/* TAG NAME */}
+                                            <td
+                                                className="
+                                                    bg-[#F8FBFF]
+                                                    px-6 py-4
+                                                    font-mono text-xs
+                                                    font-semibold
+                                                    text-[#0066FF]
+                                                    transition-colors
+                                                    group-hover:bg-[#EEF7FF]
+                                                "
+                                            >
+                                                <div
+                                                    className="
+                                                        flex items-center
+                                                        gap-2
+                                                    "
+                                                >
+                                                    <span
+                                                        className="
+                                                            h-1.5 w-1.5
+                                                            rounded-full
+                                                            bg-[#00BFFF]
+                                                            shadow-[0_0_6px_rgba(0,191,255,0.6)]
+                                                        "
+                                                    />
+
+                                                    {row.tag_name || "-"}
+                                                </div>
                                             </td>
-                                            <td className="px-6 py-4 font-semibold text-slate-900">
+
+                                            {/* GI */}
+                                            <td
+                                                className="
+                                                    px-6 py-4
+                                                    font-semibold
+                                                    text-[#082B5F]
+                                                "
+                                            >
                                                 {row.gi_name || "-"}
                                             </td>
-                                            <td className="px-6 py-4 font-medium text-slate-800">
+
+                                            {/* TARGET */}
+                                            <td
+                                                className="
+                                                    px-6 py-4
+                                                    font-medium
+                                                    text-[#253B53]
+                                                "
+                                            >
                                                 {row.target || "-"}
                                             </td>
+
+                                            {/* VALUE */}
                                             <td className="px-6 py-4">
-                                                <span className="font-mono">{row.value ?? "-"}</span>
+                                                <span
+                                                    className="
+                                                        inline-flex
+                                                        items-center
+                                                        rounded-md
+                                                        border
+                                                        border-[#D8E8FA]
+                                                        bg-[#F3F8FF]
+                                                        px-2.5 py-1
+                                                        font-mono text-xs
+                                                        font-semibold
+                                                        text-[#31506F]
+                                                    "
+                                                >
+                                                    {row.value ?? "-"}
+                                                </span>
                                             </td>
+
+                                            {/* QUALITY */}
                                             <td className="px-6 py-4">
-                                                <span className={`px-2 py-1 text-xs font-semibold rounded-md border ${
-                                                    String(row.quality) === "1" || String(row.quality).toLowerCase() === "good" 
-                                                    ? "bg-green-50 text-green-700 border-green-200" 
-                                                    : "bg-slate-100 text-slate-600 border-slate-200"
-                                                }`}>
+                                                <span
+                                                    className={`
+                                                        inline-flex
+                                                        items-center
+                                                        gap-1.5
+                                                        rounded-md
+                                                        border px-2.5 py-1
+                                                        text-xs font-bold
+                                                        ${
+                                                            String(
+                                                                row.quality
+                                                            ) === "1" ||
+                                                            String(
+                                                                row.quality
+                                                            ).toLowerCase() ===
+                                                                "good"
+                                                                ? `
+                                                                    border-[#B8E6D0]
+                                                                    bg-[#ECFBF3]
+                                                                    text-[#18804B]
+                                                                `
+                                                                : `
+                                                                    border-[#D8E2EE]
+                                                                    bg-[#F4F7FA]
+                                                                    text-[#65758B]
+                                                                `
+                                                        }
+                                                    `}
+                                                >
+                                                    <span
+                                                        className={`
+                                                            h-1.5 w-1.5
+                                                            rounded-full
+                                                            ${
+                                                                String(
+                                                                    row.quality
+                                                                ) === "1" ||
+                                                                String(
+                                                                    row.quality
+                                                                ).toLowerCase() ===
+                                                                    "good"
+                                                                    ? "bg-[#20B26B]"
+                                                                    : "bg-[#94A3B8]"
+                                                            }
+                                                        `}
+                                                    />
+
                                                     {row.quality ?? "-"}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-slate-500 text-xs">
-                                                {row.time ? new Date(row.time).toLocaleString('id-ID') : "-"}
+
+                                            {/* TIME */}
+                                            <td
+                                                className="
+                                                    px-6 py-4
+                                                    text-xs
+                                                    text-[#718096]
+                                                "
+                                            >
+                                                {row.time
+                                                    ? new Date(
+                                                          row.time
+                                                      ).toLocaleString(
+                                                          "id-ID"
+                                                      )
+                                                    : "-"}
                                             </td>
+
+                                            {/* VALUE CB */}
                                             {step === 1 && (
                                                 <>
-                                                    <td className="px-6 py-4 font-mono">{row.value_cb ?? "-"}</td>
-                                                    <td className="px-6 py-4 text-slate-500 text-xs">
-                                                        {row.time_cb ? new Date(row.time_cb).toLocaleString('id-ID') : "-"}
+                                                    <td
+                                                        className="
+                                                            px-6 py-4
+                                                            font-mono
+                                                            text-xs
+                                                            font-semibold
+                                                            text-[#31506F]
+                                                        "
+                                                    >
+                                                        {row.value_cb ??
+                                                            "-"}
+                                                    </td>
+
+                                                    {/* TIME CB */}
+                                                    <td
+                                                        className="
+                                                            px-6 py-4
+                                                            text-xs
+                                                            text-[#718096]
+                                                        "
+                                                    >
+                                                        {row.time_cb
+                                                            ? new Date(
+                                                                  row.time_cb
+                                                              ).toLocaleString(
+                                                                  "id-ID"
+                                                              )
+                                                            : "-"}
                                                     </td>
                                                 </>
                                             )}
@@ -177,27 +825,110 @@ export default function UfrStepRelay() {
                             </tbody>
                         </table>
                     </div>
-                    
-                    {/* Pagination */}
-                    <div className="border-t border-slate-200 px-6 py-4 bg-slate-50 flex items-center justify-between shrink-0">
-                        <div className="text-sm text-slate-500">
-                            Menampilkan <span className="font-medium text-slate-900">{data.length}</span> dari <span className="font-medium text-slate-900">{pagination.total}</span> data
+
+                    {/* =====================================================
+                        PAGINATION
+                    ===================================================== */}
+                    <div
+                        className="
+                            flex shrink-0
+                            items-center justify-between
+                            border-t border-[#DCE9F8]
+                            bg-[#F7FAFE]
+                            px-6 py-4
+                        "
+                    >
+                        <div
+                            className="
+                                text-sm text-[#718096]
+                            "
+                        >
+                            Menampilkan{" "}
+                            <span className="font-bold text-[#082B5F]">
+                                {data.length}
+                            </span>{" "}
+                            dari{" "}
+                            <span className="font-bold text-[#082B5F]">
+                                {pagination.total}
+                            </span>{" "}
+                            data
                         </div>
-                        <div className="flex gap-2">
+
+                        <div className="flex items-center gap-2">
+                            {/* PREV */}
                             <button
-                                onClick={() => loadData(pagination.page - 1)}
-                                disabled={pagination.page <= 1 || loading}
-                                className="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                type="button"
+                                onClick={() =>
+                                    loadData(
+                                        pagination.page - 1
+                                    )
+                                }
+                                disabled={
+                                    pagination.page <= 1 ||
+                                    loading
+                                }
+                                className="
+                                    rounded-lg
+                                    border border-[#C9DCF4]
+                                    bg-white
+                                    px-3.5 py-2
+                                    text-sm font-semibold
+                                    text-[#49627E]
+                                    shadow-sm
+                                    transition-all duration-200
+                                    hover:border-[#00BFFF]
+                                    hover:bg-[#F0F8FF]
+                                    hover:text-[#0066FF]
+                                    disabled:cursor-not-allowed
+                                    disabled:opacity-40
+                                "
                             >
                                 Prev
                             </button>
-                            <div className="px-3 py-1.5 text-sm font-medium text-slate-700">
-                                Halaman {pagination.page} dari {pagination.totalPages || 1}
+
+                            {/* CURRENT PAGE */}
+                            <div
+                                className="
+                                    rounded-lg
+                                    border border-[#CFE2FF]
+                                    bg-[#EEF6FF]
+                                    px-3.5 py-2
+                                    text-sm font-bold
+                                    text-[#0066FF]
+                                "
+                            >
+                                Halaman {pagination.page} dari{" "}
+                                {pagination.totalPages || 1}
                             </div>
+
+                            {/* NEXT */}
                             <button
-                                onClick={() => loadData(pagination.page + 1)}
-                                disabled={pagination.page >= pagination.totalPages || loading}
-                                className="px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                type="button"
+                                onClick={() =>
+                                    loadData(
+                                        pagination.page + 1
+                                    )
+                                }
+                                disabled={
+                                    pagination.page >=
+                                        pagination.totalPages ||
+                                    loading
+                                }
+                                className="
+                                    rounded-lg
+                                    border border-[#C9DCF4]
+                                    bg-white
+                                    px-3.5 py-2
+                                    text-sm font-semibold
+                                    text-[#49627E]
+                                    shadow-sm
+                                    transition-all duration-200
+                                    hover:border-[#00BFFF]
+                                    hover:bg-[#F0F8FF]
+                                    hover:text-[#0066FF]
+                                    disabled:cursor-not-allowed
+                                    disabled:opacity-40
+                                "
                             >
                                 Next
                             </button>
@@ -205,6 +936,43 @@ export default function UfrStepRelay() {
                     </div>
                 </div>
             </main>
+
+            {/* =========================================================
+                ANIMATIONS
+            ========================================================= */}
+            <style>{`
+                @keyframes ufrStepBlobFloat {
+                    0%, 100% {
+                        transform: translate(0, 0) scale(1);
+                    }
+
+                    50% {
+                        transform: translate(20px, -18px) scale(1.06);
+                    }
+                }
+
+                @keyframes ufrStepPageEnter {
+                    from {
+                        opacity: 0;
+                        transform: translateY(8px);
+                    }
+
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                @keyframes ufrStepShimmer {
+                    0% {
+                        transform: translateX(-120%);
+                    }
+
+                    60%, 100% {
+                        transform: translateX(120%);
+                    }
+                }
+            `}</style>
         </div>
     );
 }
