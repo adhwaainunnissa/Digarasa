@@ -1,84 +1,184 @@
 const olsService = require("../Services/olsService");
 
-exports.getOlsStatus = async (req, res, next) => {
+// ========================================
+// HELPER ERROR HANDLER
+// ========================================
+
+const sendError = (res, err, fallbackMessage, status = 400) => {
+    console.error(err);
+
+    return res.status(status).json({
+        message: err?.message || fallbackMessage,
+    });
+};
+
+// ========================================
+// GET STATUS OLS
+// ========================================
+
+exports.getOlsStatus = async (req, res) => {
     try {
-        const data = await olsService.getOlsStatus();
-        res.status(200).json({ success: true, data });
+        const result = await olsService.getOlsStatus();
+
+        return res.json(result);
+    } catch (err) {
+        return sendError(
+            res,
+            err,
+            "Gagal mengambil status OLS",
+            500
+        );
+    }
+};
+
+exports.getOlsById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const data = await olsService.getOlsById(id);
+
+        res.status(200).json({
+            success: true,
+            data,
+        });
     } catch (error) {
         next(error);
     }
 };
+// ========================================
+// GET CONFIG OLS
+// ========================================
 
-exports.getOlsConfig = async (req, res, next) => {
+exports.getOlsConfig = async (req, res) => {
     try {
-        const data = await olsService.getOlsConfig();
-        res.status(200).json({ success: true, data });
-    } catch (error) {
-        next(error);
+        const result = await olsService.getOlsConfig();
+
+        return res.json(result);
+    } catch (err) {
+        return sendError(
+            res,
+            err,
+            "Gagal mengambil konfigurasi OLS",
+            500
+        );
     }
 };
 
-exports.getOlsHistory = async (req, res, next) => {
+// ========================================
+// GET HISTORY OLS
+// ========================================
+
+exports.getOlsHistory = async (req, res) => {
     try {
-        const { page, limit, search, startDate, endDate } = req.query;
         const result = await olsService.getOlsHistory({
-            page,
-            limit,
-            search,
-            startDate,
-            endDate,
+            page: req.query.page || 1,
+            limit: req.query.limit || 20,
+            search: req.query.search || "",
+            startDate: req.query.startDate,
+            endDate: req.query.endDate,
         });
-        res.status(200).json({ success: true, ...result });
-    } catch (error) {
-        next(error);
+
+        return res.json(result);
+    } catch (err) {
+        return sendError(
+            res,
+            err,
+            "Gagal mengambil history OLS",
+            500
+        );
     }
 };
 
-exports.updateOls = async (req, res, next) => {
+// ========================================
+// GET 1 OLS
+// ========================================
+
+exports.getOlsById = async (req, res) => {
     try {
-        const { id } = req.params;
+        const result = await olsService.getOlsById(
+            req.params.id
+        );
 
-        const data = await olsService.updateOls(id, req.body);
-
-        res.status(200).json({
-            success: true,
-            message: "Data OLS berhasil diperbarui",
-            data,
-        });
-    } catch (error) {
-        next(error);
-    }
-};
-
-exports.deleteOls = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-
-        const data = await olsService.deleteOls(id);
-
-        res.status(200).json({
-            success: true,
-            message: "Data OLS berhasil dihapus",
-            data,
-        });
-    } catch (error) {
-        next(error);
+        return res.json(result);
+    } catch (err) {
+        return sendError(
+            res,
+            err,
+            "OLS tidak ditemukan",
+            404
+        );
     }
 };
 
 // ========================================
 // CREATE OLS
 // ========================================
-exports.createOls = async (req, res, next) => {
-    try {
-        const data = await olsService.createOls(req.body);
 
-        res.status(201).json({
-            success: true,
-            message: "Data OLS berhasil ditambahkan",
-            data,
+exports.createOls = async (req, res) => {
+    try {
+        const result = await olsService.createOls(
+            req.body
+        );
+
+        return res.status(201).json({
+            message: "OLS berhasil ditambahkan.",
+            data: result,
         });
-    } catch (error) {
-        next(error);
+    } catch (err) {
+        return sendError(
+            res,
+            err,
+            "Gagal menambahkan OLS",
+            400
+        );
+    }
+};
+
+// ========================================
+// UPDATE OLS
+// ========================================
+
+exports.updateOls = async (req, res) => {
+    try {
+        const result = await olsService.updateOls(
+            req.params.id,
+            req.body
+        );
+
+        return res.json({
+            message: "OLS berhasil diperbarui.",
+            data: result,
+        });
+    } catch (err) {
+        return sendError(
+            res,
+            err,
+            "Gagal memperbarui OLS",
+            400
+        );
+    }
+};
+
+// ========================================
+// DELETE OLS
+// ========================================
+
+exports.deleteOls = async (req, res) => {
+    try {
+        const result = await olsService.deleteOls(
+            req.params.id
+        );
+
+        return res.json({
+            message: "OLS berhasil dihapus.",
+            data: result,
+        });
+    } catch (err) {
+        return sendError(
+            res,
+            err,
+            "Gagal menghapus OLS",
+            400
+        );
     }
 };

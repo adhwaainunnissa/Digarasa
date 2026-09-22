@@ -41,6 +41,41 @@ exports.getOlsStatus = async () => {
 };
 
 // ========================================
+// GET 1 OLS
+// ========================================
+
+exports.getOlsById = async (id) => {
+    const result = await db.query(
+        `
+        SELECT
+            o.id_sw,
+            o.skema,
+            o.gi,
+            o.target,
+            o.tahap,
+            l.datapoint AS tag_name,
+            r.value,
+            r.quality,
+            r.time,
+            r.device_name
+        FROM "OLS_STATIK" o
+        LEFT JOIN "LIST_SW_OLS" l
+            ON o.id_sw = l.id_sw
+        LEFT JOIN "RT_Sw_OLS" r
+            ON l.datapoint = r.tag_name
+        WHERE o.id_sw = $1
+        `,
+        [id]
+    );
+
+    if (result.rows.length === 0) {
+        throw new Error(`OLS dengan ID ${id} tidak ditemukan.`);
+    }
+
+    return result.rows[0];
+};
+
+// ========================================
 // OLS CONFIG (Static configuration)
 // ========================================
 exports.getOlsConfig = async () => {
