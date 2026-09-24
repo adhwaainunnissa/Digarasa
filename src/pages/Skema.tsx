@@ -1490,7 +1490,7 @@ export default function Skema() {
                                 },
                                 {
                                     id: "mt",
-                                    label: "MT (Metering)",
+                                    label: "MT",
                                     icon: Settings2,
                                 },
                                 {
