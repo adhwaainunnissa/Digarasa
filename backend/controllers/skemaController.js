@@ -455,17 +455,18 @@ exports.updateSkema = async (req, res) => {
 
 
 // ========================================
-// DELETE SKEMA
+// DELETE SKEMA — WITH BACKUP
 // ========================================
 
 exports.deleteSkema = async (req, res) => {
     try {
         const result = await skemaService.deleteSkema(
-            req.params.id
+            req.params.id,
+            req.user || null
         );
 
         return res.json({
-            message: "Skema berhasil dihapus.",
+            message: "Skema berhasil dihapus. Backup data telah disimpan.",
             data: result,
         });
     } catch (err) {
@@ -474,6 +475,74 @@ exports.deleteSkema = async (req, res) => {
             err,
             "Gagal menghapus SKEMA",
             400
+        );
+    }
+};
+
+
+// ========================================
+// GET DISTINCT GI — HIERARCHICAL SELECTION
+// ========================================
+
+exports.getDistinctGI = async (req, res) => {
+    try {
+        const result = await skemaService.getDistinctGI(
+            req.query.jenis || ""
+        );
+
+        return res.json(result);
+    } catch (err) {
+        return sendError(
+            res,
+            err,
+            "Gagal mengambil daftar GI",
+            500
+        );
+    }
+};
+
+
+// ========================================
+// GET DISTINCT JENIS — HIERARCHICAL SELECTION
+// ========================================
+
+exports.getDistinctJenis = async (req, res) => {
+    try {
+        const result = await skemaService.getDistinctJenis(
+            req.query.gi || ""
+        );
+
+        return res.json(result);
+    } catch (err) {
+        return sendError(
+            res,
+            err,
+            "Gagal mengambil daftar jenis",
+            500
+        );
+    }
+};
+
+
+// ========================================
+// GET DEVICES BY GI AND JENIS — HIERARCHICAL SELECTION
+// ========================================
+
+exports.getDevicesByGiAndJenis = async (req, res) => {
+    try {
+        const result = await skemaService.getDevicesByGiAndJenis(
+            req.query.gi || "",
+            req.query.jenis || "",
+            req.query.search || ""
+        );
+
+        return res.json(result);
+    } catch (err) {
+        return sendError(
+            res,
+            err,
+            "Gagal mengambil data device",
+            500
         );
     }
 };
