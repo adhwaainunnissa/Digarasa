@@ -29,6 +29,28 @@ router.get(
 );
 
 // ========================================
+// HIERARCHICAL DEVICE SELECTION
+// Level 1: Pilih Jenis (MT, RELE OLS, dll)
+// Level 2: Pilih GI berdasarkan jenis
+// Level 3: Pilih Device berdasarkan GI + jenis
+// ========================================
+
+router.get(
+    "/devices/jenis",
+    skemaController.getDistinctJenis
+);
+
+router.get(
+    "/devices/gi",
+    skemaController.getDistinctGI
+);
+
+router.get(
+    "/devices/filter",
+    skemaController.getDevicesByGiAndJenis
+);
+
+// ========================================
 // LIST SKEMA
 // ========================================
 
