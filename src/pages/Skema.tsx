@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import api from "../api/axios";
 
 import {
@@ -18,6 +18,14 @@ import {
     AlertCircle,
     Check,
     Zap,
+    ChevronDown,
+    AlertTriangle,
+    CheckCircle2,
+    ArrowRight,
+    MapPin,
+    Tag,
+    Layers,
+    Shield,
 } from "lucide-react";
 
 // ========================================
@@ -92,6 +100,107 @@ interface Pagination {
 
 type DetailTab = "info" | "mt" | "rele" | "rtac";
 
+interface Toast {
+    id: number;
+    type: "success" | "error" | "warning" | "info";
+    message: string;
+}
+
+interface ConfirmDialogState {
+    open: boolean;
+    title: string;
+    message: string;
+    detail?: string;
+    danger?: boolean;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
+// ========================================
+// TOAST COMPONENT
+// ========================================
+
+let _toastId = 0;
+
+const ToastContainer = ({
+    toasts,
+    onRemove,
+}: {
+    toasts: Toast[];
+    onRemove: (id: number) => void;
+}) => (
+    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2.5">
+        {toasts.map((t) => (
+            <div
+                key={t.id}
+                className={`flex items-start gap-3 rounded-xl border px-4 py-3.5 shadow-2xl backdrop-blur-sm transition-all duration-300 ${
+                    t.type === "success"
+                        ? "border-green-200 bg-white/95 text-green-800"
+                        : t.type === "error"
+                          ? "border-red-200 bg-white/95 text-red-800"
+                          : t.type === "warning"
+                            ? "border-amber-200 bg-white/95 text-amber-800"
+                            : "border-blue-200 bg-white/95 text-blue-800"
+                }`}
+                style={{ minWidth: 280, maxWidth: 380 }}
+            >
+                <div className="mt-0.5 shrink-0">
+                    {t.type === "success" && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                    {t.type === "error" && <AlertCircle className="h-4 w-4 text-red-500" />}
+                    {t.type === "warning" && <AlertTriangle className="h-4 w-4 text-amber-500" />}
+                    {t.type === "info" && <Info className="h-4 w-4 text-blue-500" />}
+                </div>
+                <p className="flex-1 text-sm font-semibold leading-snug">{t.message}</p>
+                <button onClick={() => onRemove(t.id)} className="ml-1 shrink-0 text-slate-400 transition-colors hover:text-slate-700">
+                    <X className="h-3.5 w-3.5" />
+                </button>
+            </div>
+        ))}
+    </div>
+);
+
+// ========================================
+// CONFIRM DIALOG COMPONENT
+// ========================================
+
+const ConfirmDialogModal = ({ dialog }: { dialog: ConfirmDialogState }) => {
+    if (!dialog.open) return null;
+    return (
+        <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-[#082B5F]/60 backdrop-blur-sm" onClick={dialog.onCancel} />
+            <div className="skema-modal relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                <div className="p-6">
+                    <div className="mb-4 flex items-start gap-4">
+                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${dialog.danger ? "bg-red-50" : "bg-blue-50"}`}>
+                            {dialog.danger ? <AlertTriangle className="h-5 w-5 text-red-600" /> : <Info className="h-5 w-5 text-[#0066FF]" />}
+                        </div>
+                        <div>
+                            <h3 className="text-base font-extrabold text-[#082B5F]">{dialog.title}</h3>
+                            <p className="mt-1 text-sm leading-relaxed text-slate-600">{dialog.message}</p>
+                        </div>
+                    </div>
+                    {dialog.detail && (
+                        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                            <div className="mb-1 flex items-center gap-2">
+                                <Shield className="h-3.5 w-3.5 text-amber-600" />
+                                <span className="text-xs font-bold text-amber-700">Informasi Penting</span>
+                            </div>
+                            <p className="text-xs font-medium leading-relaxed text-amber-800">{dialog.detail}</p>
+                        </div>
+                    )}
+                    <div className="flex items-center justify-end gap-3">
+                        <button onClick={dialog.onCancel} className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-500 transition-all hover:bg-slate-100">Batal</button>
+                        <button onClick={dialog.onConfirm} className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 ${dialog.danger ? "bg-red-600 hover:bg-red-700" : "bg-[#0066FF] hover:bg-[#0055DD]"}`}>
+                            <Check className="h-4 w-4" />
+                            {dialog.danger ? "Ya, Hapus" : "Konfirmasi"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // ========================================
 // SEARCHABLE SELECT
 // ========================================
@@ -117,18 +226,10 @@ const SearchableSelect = ({
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (
-                wrapperRef.current &&
-                !wrapperRef.current.contains(e.target as Node)
-            ) {
-                setIsOpen(false);
-            }
+            if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setIsOpen(false);
         };
-
         document.addEventListener("mousedown", handleClickOutside);
-
-        return () =>
-            document.removeEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     const filteredOptions = options.filter((opt) =>
@@ -138,74 +239,221 @@ const SearchableSelect = ({
     return (
         <div className="relative" ref={wrapperRef}>
             <div
-                className="group flex w-full cursor-pointer items-center justify-between rounded-xl border border-blue-100 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus-within:border-[#0066FF] focus-within:ring-2 focus-within:ring-[#0066FF]/15"
+                className="group flex w-full cursor-pointer items-center justify-between rounded-xl border border-blue-100 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
                 onClick={() => setIsOpen(!isOpen)}
             >
-                <span
-                    className={
-                        value
-                            ? "font-medium text-[#082B5F]"
-                            : "text-slate-400"
-                    }
-                >
-                    {value
-                        ? displayValue(
-                              options.find((o) => o === value) || value
-                          )
-                        : placeholder}
+                <span className={value ? "font-medium text-[#082B5F]" : "text-slate-400"}>
+                    {value ? displayValue(options.find((o) => o === value) || value) : placeholder}
                 </span>
-
-                <ChevronRight
-                    className={`h-4 w-4 text-[#0066FF] transition-transform ${
-                        isOpen ? "rotate-90" : ""
-                    }`}
-                />
+                <ChevronDown className={`h-4 w-4 text-[#0066FF] transition-transform ${isOpen ? "rotate-180" : ""}`} />
             </div>
-
             {isOpen && (
                 <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-blue-100 bg-white shadow-2xl shadow-blue-900/10">
                     <div className="border-b border-blue-50 bg-[#F5F9FF] p-2.5">
                         <div className="relative">
                             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#0066FF]" />
-
-                            <input
-                                autoFocus
-                                type="text"
-                                className="w-full rounded-lg border border-blue-100 bg-white py-2 pl-8 pr-3 text-xs text-slate-800 outline-none transition-all focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/15"
-                                placeholder="Cari..."
-                                value={search}
-                                onChange={(e) =>
-                                    setSearch(e.target.value)
-                                }
-                            />
+                            <input autoFocus type="text" className="w-full rounded-lg border border-blue-100 bg-white py-2 pl-8 pr-3 text-xs text-slate-800 outline-none transition-all focus:border-[#0066FF]" placeholder="Cari..." value={search} onChange={(e) => setSearch(e.target.value)} />
                         </div>
                     </div>
-
                     <ul className="max-h-60 overflow-y-auto p-1.5">
                         {filteredOptions.length === 0 ? (
-                            <li className="p-4 text-center text-xs text-slate-500">
-                                Tidak ada hasil ditemukan
-                            </li>
+                            <li className="p-4 text-center text-xs text-slate-500">Tidak ada hasil ditemukan</li>
                         ) : (
                             filteredOptions.map((opt, i) => (
-                                <li
-                                    key={i}
-                                    className="group flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-all hover:bg-blue-50 hover:text-[#0066FF]"
-                                    onClick={() => {
-                                        onChange(opt);
-                                        setIsOpen(false);
-                                        setSearch("");
-                                    }}
-                                >
+                                <li key={i} className="group flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-all hover:bg-blue-50 hover:text-[#0066FF]" onClick={() => { onChange(opt); setIsOpen(false); setSearch(""); }}>
                                     {renderOption(opt)}
-
-                                    {value === opt && (
-                                        <Check className="h-4 w-4 text-[#0066FF]" />
-                                    )}
+                                    {value === opt && <Check className="h-4 w-4 text-[#0066FF]" />}
                                 </li>
                             ))
                         )}
                     </ul>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ========================================
+// HIERARCHICAL DEVICE PICKER
+// ========================================
+// Progressive device selection:
+//   MT:   GI → Device (pre-filtered by jenis=MT)
+//   RELE: Jenis → GI → Device
+
+const HierarchicalDevicePicker = ({
+    tabType,
+    value,
+    onChange,
+}: {
+    tabType: "mt" | "rele";
+    value: DeviceProsis | null;
+    onChange: (device: DeviceProsis | null) => void;
+}) => {
+    const defaultJenis = tabType === "mt" ? "MT" : "";
+    const [selectedJenis, setSelectedJenis] = useState<string>(defaultJenis);
+    const [selectedGI, setSelectedGI] = useState<string>("");
+    const [giList, setGIList] = useState<string[]>([]);
+    const [deviceList, setDeviceList] = useState<DeviceProsis[]>([]);
+    const [loadingGI, setLoadingGI] = useState(false);
+    const [loadingDevices, setLoadingDevices] = useState(false);
+    const [deviceSearch, setDeviceSearch] = useState("");
+    const [jenisList, setJenisList] = useState<string[]>([]);
+    const [loadingJenis, setLoadingJenis] = useState(false);
+
+    useEffect(() => {
+        if (tabType === "rele") {
+            setLoadingJenis(true);
+            api.get("/skema/devices/jenis")
+                .then((r) => setJenisList((r.data || []).filter((j: string) => j.toLowerCase().includes("rele") || j.toLowerCase().includes("test"))))
+                .catch(() => setJenisList([]))
+                .finally(() => setLoadingJenis(false));
+        } else {
+            // MT: load GI immediately filtered by jenis=MT
+            setLoadingGI(true);
+            api.get("/skema/devices/gi", { params: { jenis: "MT" } })
+                .then((r) => setGIList(r.data || []))
+                .catch(() => setGIList([]))
+                .finally(() => setLoadingGI(false));
+        }
+    }, [tabType]);
+
+    useEffect(() => {
+        if (tabType === "rele" && !selectedJenis) { setGIList([]); return; }
+        if (tabType === "mt") return; // already loaded on mount
+        setLoadingGI(true);
+        setSelectedGI("");
+        setDeviceList([]);
+        onChange(null);
+        api.get("/skema/devices/gi", { params: { jenis: selectedJenis } })
+            .then((r) => setGIList(r.data || []))
+            .catch(() => setGIList([]))
+            .finally(() => setLoadingGI(false));
+    }, [selectedJenis]);
+
+    useEffect(() => {
+        if (!selectedGI) { setDeviceList([]); return; }
+        setLoadingDevices(true);
+        onChange(null);
+        api.get("/skema/devices/filter", { params: { gi: selectedGI, jenis: selectedJenis, search: deviceSearch } })
+            .then((r) => setDeviceList(r.data || []))
+            .catch(() => setDeviceList([]))
+            .finally(() => setLoadingDevices(false));
+    }, [selectedGI, selectedJenis]);
+
+    useEffect(() => {
+        if (!selectedGI) return;
+        const timer = setTimeout(() => {
+            setLoadingDevices(true);
+            api.get("/skema/devices/filter", { params: { gi: selectedGI, jenis: selectedJenis, search: deviceSearch } })
+                .then((r) => setDeviceList(r.data || []))
+                .catch(() => setDeviceList([]))
+                .finally(() => setLoadingDevices(false));
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [deviceSearch]);
+
+    const step1Done = tabType === "mt" ? true : !!selectedJenis;
+    const step2Done = !!selectedGI;
+    const step3Done = !!value;
+
+    const StepBadge = ({ n, label, done, active }: { n: number; label: string; done: boolean; active: boolean }) => (
+        <div className="flex items-center gap-1.5">
+            <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${done ? "bg-green-500 text-white" : active ? "bg-[#0066FF] text-white" : "bg-slate-100 text-slate-400"}`}>
+                {done ? <Check className="h-2.5 w-2.5" /> : n}
+            </div>
+            <span className={`text-[11px] font-semibold ${done ? "text-green-600" : active ? "text-[#0066FF]" : "text-slate-400"}`}>{label}</span>
+            {n < 3 && <ArrowRight className="h-3 w-3 text-slate-200" />}
+        </div>
+    );
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[#F5F9FF] px-3 py-2">
+                <StepBadge n={1} label={tabType === "mt" ? "Jenis: MT" : "Pilih Jenis"} done={step1Done} active={!step1Done} />
+                <StepBadge n={2} label={step2Done ? `GI: ${selectedGI}` : "Pilih GI"} done={step2Done} active={step1Done && !step2Done} />
+                <StepBadge n={3} label={step3Done ? `No: ${value?.no}` : "Pilih Perangkat"} done={step3Done} active={step2Done && !step3Done} />
+            </div>
+
+            {/* Step 1: Jenis — only for RELE */}
+            {tabType === "rele" && (
+                <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500"><Tag className="h-3 w-3" /> Langkah 1 — Jenis</label>
+                    {loadingJenis ? (
+                        <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-[#F5F9FF] px-3.5 py-2.5"><RefreshCw className="h-4 w-4 animate-spin text-[#0066FF]" /><span className="text-sm text-slate-500">Memuat...</span></div>
+                    ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                            {jenisList.map((j) => (
+                                <button key={j} type="button" onClick={() => setSelectedJenis(j)} className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${selectedJenis === j ? "border-[#0066FF] bg-[#0066FF] text-white" : "border-blue-100 bg-white text-slate-600 hover:border-blue-300 hover:text-[#0066FF]"}`}>{j}</button>
+                            ))}
+                            {selectedJenis && <button type="button" onClick={() => { setSelectedJenis(""); setSelectedGI(""); onChange(null); }} className="rounded-lg border border-slate-100 bg-white p-1.5 text-slate-400 hover:bg-slate-50"><X className="h-3 w-3" /></button>}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Step 2: GI */}
+            {(tabType === "mt" || (tabType === "rele" && selectedJenis)) && (
+                <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500"><MapPin className="h-3 w-3" /> Langkah {tabType === "mt" ? "1" : "2"} — Gardu Induk</label>
+                    {loadingGI ? (
+                        <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-[#F5F9FF] px-3.5 py-2.5"><RefreshCw className="h-4 w-4 animate-spin text-[#0066FF]" /><span className="text-sm text-slate-500">Memuat GI...</span></div>
+                    ) : giList.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-3 text-center text-xs font-semibold text-slate-400">Tidak ada Gardu Induk tersedia</div>
+                    ) : (
+                        <div className="max-h-36 overflow-y-auto rounded-xl border border-blue-100 bg-white">
+                            {giList.map((gi) => (
+                                <button key={gi} type="button" onClick={() => setSelectedGI(gi)} className={`flex w-full items-center justify-between px-3.5 py-2 text-sm transition-all first:rounded-t-xl last:rounded-b-xl ${selectedGI === gi ? "bg-blue-50 font-bold text-[#0066FF]" : "font-medium text-slate-700 hover:bg-blue-50/50"}`}>
+                                    <span>{gi}</span>
+                                    {selectedGI === gi && <Check className="h-4 w-4" />}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Step 3: Device */}
+            {selectedGI && (
+                <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500"><Layers className="h-3 w-3" /> Langkah {tabType === "mt" ? "2" : "3"} — Perangkat</label>
+                    <div className="relative mb-2">
+                        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                        <input type="text" placeholder="Cari tag name, merek, tipe..." value={deviceSearch} onChange={(e) => setDeviceSearch(e.target.value)} className="w-full rounded-xl border border-blue-100 bg-[#F5F9FF] py-2 pl-9 pr-3 text-xs outline-none transition-all focus:border-[#0066FF] focus:bg-white" />
+                    </div>
+                    {loadingDevices ? (
+                        <div className="flex items-center justify-center gap-2 rounded-xl border border-blue-100 bg-[#F5F9FF] py-6">
+                            <RefreshCw className="h-4 w-4 animate-spin text-[#0066FF]" /><span className="text-sm text-slate-500">Memuat perangkat...</span>
+                        </div>
+                    ) : deviceList.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-4 text-center text-xs font-semibold text-slate-400">Tidak ada perangkat di {selectedGI}</div>
+                    ) : (
+                        <div className="max-h-48 overflow-y-auto rounded-xl border border-blue-100 bg-white">
+                            {deviceList.map((d) => {
+                                const sel = value?.no === d.no;
+                                return (
+                                    <button key={d.no} type="button" onClick={() => onChange(sel ? null : d)} className={`flex w-full items-start justify-between border-b border-blue-50 px-3.5 py-2.5 text-left text-xs transition-all last:border-b-0 first:rounded-t-xl last:rounded-b-xl ${sel ? "bg-blue-50" : "hover:bg-blue-50/40"}`}>
+                                        <div>
+                                            <div className={`font-mono font-bold ${sel ? "text-[#0066FF]" : "text-[#082B5F]"}`}>#{d.no}{d.tag_name && <span className="ml-1 font-mono text-[10px] text-slate-400">{d.tag_name}</span>}</div>
+                                            <div className="mt-0.5 text-[10px] text-slate-500">{[d.jenis, d.merek, d.tipe].filter(Boolean).join(" · ")}</div>
+                                            {d.keterangan && <div className="mt-0.5 truncate text-[10px] text-slate-400">{d.keterangan}</div>}
+                                        </div>
+                                        {sel && <Check className="ml-2 mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0066FF]" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                    {value && (
+                        <div className="mt-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+                            <div className="mb-1 flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-green-500" /><span className="text-xs font-bold text-green-700">Perangkat Terpilih</span></div>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                <div><span className="text-slate-400">No: </span><span className="font-mono font-bold text-[#082B5F]">{value.no}</span></div>
+                                <div><span className="text-slate-400">GI: </span><span className="font-semibold text-[#082B5F]">{value.gi || "-"}</span></div>
+                                {value.merek && <div><span className="text-slate-400">Merek: </span><span className="font-semibold text-[#082B5F]">{value.merek}</span></div>}
+                                {value.tipe && <div><span className="text-slate-400">Tipe: </span><span className="font-semibold text-[#082B5F]">{value.tipe}</span></div>}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -227,7 +475,40 @@ export default function Skema() {
     const [search, setSearch] = useState("");
 
     const [subsistem, setSubsistem] = useState<Subsistem[]>([]);
-    const [devices, setDevices] = useState<DeviceProsis[]>([]);
+
+    // ========================================
+    // TOAST STATE
+    // ========================================
+
+    const [toasts, setToasts] = useState<Toast[]>([]);
+
+    const showToast = useCallback((type: Toast["type"], message: string, duration = 4500) => {
+        const id = ++_toastId;
+        setToasts((prev) => [...prev, { id, type, message }]);
+        setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), duration);
+    }, []);
+
+    const removeToast = useCallback((id: number) => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, []);
+
+    // ========================================
+    // CONFIRM DIALOG STATE
+    // ========================================
+
+    const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
+        open: false,
+        title: "",
+        message: "",
+        onConfirm: () => {},
+        onCancel: () => {},
+    });
+
+    const openConfirm = (opts: Omit<ConfirmDialogState, "open">) =>
+        setConfirmDialog({ ...opts, open: true });
+
+    const closeConfirm = () =>
+        setConfirmDialog((prev) => ({ ...prev, open: false }));
 
     const [selectedSkema, setSelectedSkema] =
         useState<SkemaData | null>(null);
@@ -306,20 +587,10 @@ export default function Skema() {
 
     const loadMasterData = async () => {
         try {
-            const [subRes, devRes] = await Promise.all([
-                api.get("/skema/subsistem"),
-                api.get("/tables/DEVICE_PROSIS", {
-                    params: { limit: 10000 },
-                }),
-            ]);
-
+            const subRes = await api.get("/skema/subsistem");
             setSubsistem(subRes.data || []);
-            setDevices(devRes.data?.data || []);
         } catch (error) {
-            console.error(
-                "Gagal memuat master data:",
-                error
-            );
+            console.error("Gagal memuat master data:", error);
         }
     };
 
@@ -414,52 +685,15 @@ export default function Skema() {
         }
     };
 
-    // ========================================
-    // ENRICH
-    // ========================================
-
-    const enrichedMT = useMemo(() => {
-        return skemaMT.map((mt) => {
-            const device = devices.find(
-                (d) => d.no === mt.no
-            );
-
-            return {
-                ...mt,
-                ...device,
-                skemaName: selectedSkema?.skema,
-                subsistemName:
-                    selectedSkema?.subsistem,
-            };
-        });
-    }, [skemaMT, devices, selectedSkema]);
-
-    const enrichedRele = useMemo(() => {
-        return skemaRele.map((rele) => {
-            const device = devices.find(
-                (d) => d.no === rele.no
-            );
-
-            return {
-                ...rele,
-                ...device,
-                skemaName: selectedSkema?.skema,
-                subsistemName:
-                    selectedSkema?.subsistem,
-            };
-        });
-    }, [skemaRele, devices, selectedSkema]);
+    // MT and RELE data is now enriched by the backend via JOIN,
+    // so enrichedMT and enrichedRele are just aliases for the state.
 
     // ========================================
     // CRUD SKEMA
     // ========================================
 
     const openAddSkema = () => {
-        if (!isAdmin)
-            return alert(
-                "Anda tidak memiliki izin."
-            );
-
+        if (!isAdmin) { showToast("warning", "Anda tidak memiliki izin admin."); return; }
         setEditingSkemaId(null);
         setFormSkemaName("");
         setFormSkemaSub(null);
@@ -467,142 +701,79 @@ export default function Skema() {
         setShowSkemaForm(true);
     };
 
-    const openEditSkema = (
-        e: React.MouseEvent,
-        item: SkemaData
-    ) => {
+    const openEditSkema = (e: React.MouseEvent, item: SkemaData) => {
         e.stopPropagation();
-
-        if (!isAdmin)
-            return alert(
-                "Anda tidak memiliki izin."
-            );
-
+        if (!isAdmin) { showToast("warning", "Anda tidak memiliki izin admin."); return; }
+        // Pre-fill all SKEMA fields — this ONLY edits the SKEMA table, not DEVICE_PROSIS
         setEditingSkemaId(item.id_skema);
         setFormSkemaName(item.skema);
-
-        setFormSkemaSub(
-            subsistem.find(
-                (s) => s.id_ss === item.id_ss
-            ) || null
-        );
-
+        setFormSkemaSub(subsistem.find((s) => s.id_ss === item.id_ss) || null);
         setFormSkemaAktif(item.aktif ?? "");
-
         setShowSkemaForm(true);
     };
 
-    const handleSaveSkema = async (
-        e: React.FormEvent
-    ) => {
+    const handleSaveSkema = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!formSkemaName.trim())
-            return alert(
-                "Nama skema wajib diisi."
-            );
+        if (!formSkemaName.trim()) { showToast("warning", "Nama skema wajib diisi."); return; }
 
         try {
             setSaving(true);
-
+            // Payload targets SKEMA table ONLY. DEVICE_PROSIS is never touched here.
             const payload = {
                 skema: formSkemaName.trim(),
-                id_ss: formSkemaSub
-                    ? formSkemaSub.id_ss
-                    : null,
-                aktif:
-                    formSkemaAktif === ""
-                        ? null
-                        : formSkemaAktif,
+                id_ss: formSkemaSub ? formSkemaSub.id_ss : null,
+                aktif: formSkemaAktif === "" ? null : formSkemaAktif,
             };
 
             if (editingSkemaId) {
-                await api.put(
-                    `/skema/${editingSkemaId}`,
-                    payload
-                );
+                await api.put(`/skema/${editingSkemaId}`, payload);
+                showToast("success", `Skema "${formSkemaName.trim()}" berhasil diperbarui.`);
             } else {
-                await api.post(
-                    "/skema",
-                    payload
-                );
+                await api.post("/skema", payload);
+                showToast("success", `Skema "${formSkemaName.trim()}" berhasil ditambahkan.`);
             }
 
             setShowSkemaForm(false);
-
-            if (
-                selectedSkema &&
-                selectedSkema.id_skema ===
-                    editingSkemaId
-            ) {
-                setSelectedSkema(null);
-            }
-
-            await loadSkema(
-                pagination?.page || 1,
-                search
-            );
+            if (selectedSkema && selectedSkema.id_skema === editingSkemaId) setSelectedSkema(null);
+            await loadSkema(pagination?.page || 1, search);
         } catch (error: any) {
-            alert(
-                error?.response?.data?.message ||
-                    "Gagal menyimpan SKEMA."
-            );
+            showToast("error", error?.response?.data?.message || "Gagal menyimpan SKEMA.");
         } finally {
             setSaving(false);
         }
     };
 
-    const handleDeleteSkema = async (
-        e: React.MouseEvent,
-        item: SkemaData
-    ) => {
+    const handleDeleteSkema = (e: React.MouseEvent, item: SkemaData) => {
         e.stopPropagation();
-
         if (!isAdmin) return;
 
-        if (
-            !window.confirm(
-                `Yakin ingin menghapus skema "${item.skema}"?\nTindakan ini tidak dapat dibatalkan.`
-            )
-        )
-            return;
-
-        try {
-            await api.delete(
-                `/skema/${item.id_skema}`
-            );
-
-            if (
-                selectedSkema?.id_skema ===
-                item.id_skema
-            ) {
-                setSelectedSkema(null);
-            }
-
-            await loadSkema(
-                pagination?.page || 1,
-                search
-            );
-        } catch (error: any) {
-            alert(
-                error?.response?.data?.message ||
-                    "Gagal menghapus SKEMA."
-            );
-        }
+        openConfirm({
+            title: "Hapus Skema",
+            message: `Anda akan menghapus skema "${item.skema}".`,
+            detail:
+                "Sebelum dihapus, seluruh data skema (termasuk relasi MT, RELE, dan RTAC) akan dicatat ke dalam log audit sebagai backup. Data dapat dipulihkan dari backup oleh administrator. Tindakan penghapusan dari database tidak dapat dibatalkan secara langsung.",
+            danger: true,
+            onCancel: closeConfirm,
+            onConfirm: async () => {
+                closeConfirm();
+                try {
+                    await api.delete(`/skema/${item.id_skema}`);
+                    if (selectedSkema?.id_skema === item.id_skema) setSelectedSkema(null);
+                    showToast("success", `Skema "${item.skema}" berhasil dihapus. Backup disimpan di log audit.`);
+                    await loadSkema(pagination?.page || 1, search);
+                } catch (error: any) {
+                    showToast("error", error?.response?.data?.message || "Gagal menghapus SKEMA.");
+                }
+            },
+        });
     };
 
     // ========================================
     // CRUD TAB
     // ========================================
 
-    const openAddTab = (
-        type: "mt" | "rele" | "rtac"
-    ) => {
-        if (!isAdmin)
-            return alert(
-                "Anda tidak memiliki izin."
-            );
-
+    const openAddTab = (type: "mt" | "rele" | "rtac") => {
+        if (!isAdmin) { showToast("warning", "Anda tidak memiliki izin admin."); return; }
         setShowTabForm(type);
         setEditingTabItem(null);
         setFormTabDevice(null);
@@ -610,14 +781,8 @@ export default function Skema() {
         setFormTabRtac({});
     };
 
-    const openEditTab = (
-        type: "mt" | "rele" | "rtac",
-        row: any
-    ) => {
-        if (!isAdmin)
-            return alert(
-                "Anda tidak memiliki izin."
-            );
+    const openEditTab = (type: "mt" | "rele" | "rtac", row: any) => {
+        if (!isAdmin) { showToast("warning", "Anda tidak memiliki izin admin."); return; }
 
         setShowTabForm(type);
         setEditingTabItem(row);
@@ -656,141 +821,74 @@ export default function Skema() {
             let payload: any = {};
 
             if (showTabForm === "mt") {
-                if (!formTabDevice)
-                    return alert(
-                        "Pilih peralatan terlebih dahulu."
-                    );
-
-                payload = {
-                    no: formTabDevice.no,
-                    id_skema:
-                        selectedSkema.id_skema,
-                    jenis:
-                        formTabJenis || null,
-                };
+                if (!formTabDevice) { showToast("warning", "Pilih peralatan terlebih dahulu."); return; }
+                payload = { no: formTabDevice.no, id_skema: selectedSkema.id_skema, jenis: formTabJenis || null };
 
                 if (editingTabItem) {
-                    await api.put(
-                        `/skema/${selectedSkema.id_skema}/mt/${editingTabItem.no}`,
-                        payload
-                    );
+                    await api.put(`/skema/${selectedSkema.id_skema}/mt/${editingTabItem.no}`, payload);
                 } else {
-                    await api.post(
-                        `/skema/${selectedSkema.id_skema}/mt`,
-                        payload
-                    );
+                    await api.post(`/skema/${selectedSkema.id_skema}/mt`, payload);
                 }
-            } else if (
-                showTabForm === "rele"
-            ) {
-                if (!formTabDevice)
-                    return alert(
-                        "Pilih peralatan terlebih dahulu."
-                    );
-
-                payload = {
-                    no: formTabDevice.no,
-                    id_skema:
-                        selectedSkema.id_skema,
-                };
+                showToast("success", `MT berhasil ${editingTabItem ? "diperbarui" : "ditambahkan"}.`);
+            } else if (showTabForm === "rele") {
+                if (!formTabDevice) { showToast("warning", "Pilih peralatan terlebih dahulu."); return; }
+                payload = { no: formTabDevice.no, id_skema: selectedSkema.id_skema };
 
                 if (editingTabItem) {
-                    await api.put(
-                        `/skema/${selectedSkema.id_skema}/rele/${editingTabItem.no}`,
-                        payload
-                    );
+                    await api.put(`/skema/${selectedSkema.id_skema}/rele/${editingTabItem.no}`, payload);
                 } else {
-                    await api.post(
-                        `/skema/${selectedSkema.id_skema}/rele`,
-                        payload
-                    );
+                    await api.post(`/skema/${selectedSkema.id_skema}/rele`, payload);
                 }
-            } else if (
-                showTabForm === "rtac"
-            ) {
-                payload = {
-                    ...formTabRtac,
-                    Skema: selectedSkema.skema,
-                };
+                showToast("success", `RELE berhasil ${editingTabItem ? "diperbarui" : "ditambahkan"}.`);
+            } else if (showTabForm === "rtac") {
+                payload = { ...formTabRtac, Skema: selectedSkema.skema };
 
                 if (editingTabItem) {
-                    await api.put(
-                        `/skema/rtac/item/${encodeURIComponent(
-                            editingTabItem.Tag_Name
-                        )}`,
-                        payload
-                    );
+                    await api.put(`/skema/rtac/item/${encodeURIComponent(editingTabItem.Tag_Name)}`, payload);
                 } else {
-                    await api.post(
-                        `/skema/rtac`,
-                        payload
-                    );
+                    await api.post(`/skema/rtac`, payload);
                 }
+                showToast("success", `RTAC berhasil ${editingTabItem ? "diperbarui" : "ditambahkan"}.`);
             }
 
             setShowTabForm(null);
             setEditingTabItem(null);
-
-            await reloadTab(
-                showTabForm,
-                selectedSkema
-            );
+            await reloadTab(showTabForm, selectedSkema);
         } catch (error: any) {
-            alert(
-                error?.response?.data?.error ||
-                    error?.response?.data?.message ||
-                    `Gagal menyimpan data ${showTabForm.toUpperCase()}.`
-            );
+            showToast("error", error?.response?.data?.error || error?.response?.data?.message || `Gagal menyimpan data ${showTabForm?.toUpperCase()}.`);
         } finally {
             setSaving(false);
         }
     };
 
-    const handleDeleteTab = async (
+    const handleDeleteTab = (
         type: "mt" | "rele" | "rtac",
         row: any
     ) => {
-        if (
-            !isAdmin ||
-            !selectedSkema
-        )
-            return;
+        if (!isAdmin || !selectedSkema) return;
 
-        if (
-            !window.confirm(
-                `Yakin ingin menghapus record ini dari ${type.toUpperCase()}?`
-            )
-        )
-            return;
-
-        try {
-            if (type === "mt") {
-                await api.delete(
-                    `/skema/${selectedSkema.id_skema}/mt/${row.no}`
-                );
-            } else if (type === "rele") {
-                await api.delete(
-                    `/skema/${selectedSkema.id_skema}/rele/${row.no}`
-                );
-            } else if (type === "rtac") {
-                await api.delete(
-                    `/skema/rtac/item/${encodeURIComponent(
-                        row.Tag_Name
-                    )}`
-                );
-            }
-
-            await reloadTab(
-                type,
-                selectedSkema
-            );
-        } catch (error: any) {
-            alert(
-                error?.response?.data?.error ||
-                    error?.response?.data?.message ||
-                    "Gagal menghapus data."
-            );
-        }
+        openConfirm({
+            title: `Hapus ${type.toUpperCase()} Record`,
+            message: `Yakin ingin menghapus record ini dari ${type.toUpperCase()}?`,
+            danger: true,
+            onCancel: closeConfirm,
+            onConfirm: async () => {
+                closeConfirm();
+                try {
+                    if (type === "mt") {
+                        await api.delete(`/skema/${selectedSkema.id_skema}/mt/${row.no}`);
+                    } else if (type === "rele") {
+                        await api.delete(`/skema/${selectedSkema.id_skema}/rele/${row.no}`);
+                    } else if (type === "rtac") {
+                        await api.delete(`/skema/rtac/item/${encodeURIComponent(row.Tag_Name)}`);
+                    }
+                    showToast("success", `Record ${type.toUpperCase()} berhasil dihapus.`);
+                    await reloadTab(type, selectedSkema);
+                } catch (error: any) {
+                    showToast("error", error?.response?.data?.error || error?.response?.data?.message || "Gagal menghapus data.");
+                }
+            },
+        });
     };
 
     // ========================================
@@ -1538,7 +1636,7 @@ export default function Skema() {
                                         <div className="flex justify-center py-16">
                                             <RefreshCw className="h-6 w-6 animate-spin text-[#0066FF]" />
                                         </div>
-                                    ) : enrichedMT.length ===
+                                    ) : skemaMT.length ===
                                       0 ? (
                                         <div className="rounded-2xl border border-dashed border-blue-200 bg-white py-16 text-center">
                                             <Settings2 className="mx-auto mb-3 h-8 w-8 text-blue-200" />
@@ -1580,7 +1678,7 @@ export default function Skema() {
                                                 </thead>
 
                                                 <tbody className="divide-y divide-blue-50 bg-white">
-                                                    {enrichedMT.map(
+                                                    {skemaMT.map(
                                                         (
                                                             row
                                                         ) => (
@@ -1707,7 +1805,7 @@ export default function Skema() {
                                         <div className="flex justify-center py-16">
                                             <RefreshCw className="h-6 w-6 animate-spin text-[#0066FF]" />
                                         </div>
-                                    ) : enrichedRele.length ===
+                                    ) : skemaRele.length ===
                                       0 ? (
                                         <div className="rounded-2xl border border-dashed border-blue-200 bg-white py-16 text-center">
                                             <Cpu className="mx-auto mb-3 h-8 w-8 text-blue-200" />
@@ -1746,7 +1844,7 @@ export default function Skema() {
                                                 </thead>
 
                                                 <tbody className="divide-y divide-blue-50 bg-white">
-                                                    {enrichedRele.map(
+                                                    {skemaRele.map(
                                                         (
                                                             row
                                                         ) => (
@@ -2266,57 +2364,23 @@ export default function Skema() {
                                             </span>
                                         </label>
 
-                                        <SearchableSelect
-                                            options={
-                                                devices
-                                            }
-                                            value={
-                                                formTabDevice
-                                            }
-                                            onChange={
-                                                setFormTabDevice
-                                            }
-                                            placeholder="Cari dan pilih peralatan..."
-                                            displayValue={(
-                                                d
-                                            ) =>
-                                                `${
-                                                    d.gi ||
-                                                    "Tanpa GI"
-                                                } - ${
-                                                    d.merek ||
-                                                    "Tanpa Merek"
-                                                } (${
-                                                    d.tipe ||
-                                                    "No Tipe"
-                                                })`
-                                            }
-                                            renderOption={(
-                                                d
-                                            ) => (
-                                                <div className="flex flex-col text-left">
-                                                    <span className="font-semibold text-[#082B5F]">
-                                                        {d.gi ||
-                                                            "Unknown GI"}
-                                                    </span>
+                                        {/* Show current device info when editing */}
+                                        {editingTabItem && (
+                                            <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                                                <p className="text-xs font-bold text-amber-700 mb-1">Perangkat Saat Ini</p>
+                                                <p className="text-xs text-amber-800 font-mono">
+                                                    #{editingTabItem.no}
+                                                    {editingTabItem.gi && ` · ${editingTabItem.gi}`}
+                                                    {editingTabItem.merek && ` · ${editingTabItem.merek}`}
+                                                </p>
+                                                <p className="mt-1 text-[10px] text-amber-600">Gunakan pemilih di bawah untuk mengganti perangkat.</p>
+                                            </div>
+                                        )}
 
-                                                    <span className="text-xs text-slate-500">
-                                                        {
-                                                            d.merek
-                                                        }{" "}
-                                                        {
-                                                            d.tipe
-                                                        }
-
-                                                        <span className="ml-2 rounded border border-blue-100 bg-blue-50 px-1 font-mono text-[#0066FF]">
-                                                            No:
-                                                            {
-                                                                d.no
-                                                            }
-                                                        </span>
-                                                    </span>
-                                                </div>
-                                            )}
+                                        <HierarchicalDevicePicker
+                                            tabType={showTabForm as "mt" | "rele"}
+                                            value={formTabDevice}
+                                            onChange={setFormTabDevice}
                                         />
                                     </div>
 
@@ -2325,6 +2389,7 @@ export default function Skema() {
                                         <div>
                                             <label className="mb-1.5 block text-sm font-bold text-[#082B5F]">
                                                 Jenis
+                                                <span className="ml-2 text-[11px] font-normal text-slate-400">(opsional)</span>
                                             </label>
 
                                             <input
@@ -2341,6 +2406,7 @@ export default function Skema() {
                                                             .value
                                                     )
                                                 }
+                                                placeholder="Diisi otomatis dari device..."
                                                 className="w-full rounded-xl border border-blue-100 bg-[#F5F9FF] px-3.5 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-[#0066FF] focus:bg-white focus:ring-4 focus:ring-[#0066FF]/10"
                                             />
                                         </div>
@@ -2489,7 +2555,10 @@ export default function Skema() {
 
                                 <button
                                     type="submit"
-                                    disabled={saving}
+                                    disabled={
+                                        saving ||
+                                        ((showTabForm === "mt" || showTabForm === "rele") && !formTabDevice)
+                                    }
                                     className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#00BFFF] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {saving ? (
@@ -2507,6 +2576,11 @@ export default function Skema() {
                     </div>
                 </div>
             )}
+            {/* CONFIRM DIALOG */}
+            <ConfirmDialogModal dialog={confirmDialog} />
+
+            {/* TOAST SYSTEM */}
+            <ToastContainer toasts={toasts} onRemove={removeToast} />
         </div>
     );
 }
