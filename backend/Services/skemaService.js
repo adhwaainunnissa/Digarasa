@@ -951,10 +951,96 @@ exports.updateSkema = async (
 };
 
 // ========================================
-// DELETE SKEMA UTAMA
+// DELETE SKEMA UTAMA — WITH BACKUP
 // ========================================
+// Sebelum menghapus SKEMA, buat snapshot lengkap di audit_logs.
+// Snapshot mencakup: SKEMA, semua SKEMA_MT, SKEMA_RELE, Skema_RTAC terkait.
 
-exports.deleteSkema = async (id) => {
+exports.deleteSkema = async (id, user = null) => {
+    // 1. Ambil data SKEMA yang akan dihapus
+    const skemaResult = await db.query(
+        `
+        SELECT
+            s.id_skema,
+            s.skema,
+            s.id_ss,
+            s.aktif,
+            ss.subsistem
+        FROM "SKEMA" s
+        LEFT JOIN "subsistem" ss ON s.id_ss = ss.id_ss
+        WHERE s.id_skema = $1
+        `,
+        [id]
+    );
+
+    if (skemaResult.rows.length === 0) {
+        throw new Error(`Skema dengan ID ${id} tidak ditemukan.`);
+    }
+
+    const skemaData = skemaResult.rows[0];
+
+    // 2. Ambil semua SKEMA_MT terkait
+    const mtResult = await db.query(
+        `
+        SELECT sm.no, sm.id_skema, sm.jenis, dp.tag_name, dp.gi, dp.merek, dp.tipe, dp.keterangan
+        FROM "SKEMA_MT" sm
+        LEFT JOIN "DEVICE_PROSIS" dp ON sm.no = dp.no
+        WHERE sm.id_skema = $1
+        ORDER BY sm.no
+        `,
+        [id]
+    );
+
+    // 3. Ambil semua SKEMA_RELE terkait
+    const releResult = await db.query(
+        `
+        SELECT sr.no, sr.id_skema, dp.tag_name, dp.gi, dp.jenis, dp.merek, dp.tipe, dp.keterangan
+        FROM "SKEMA_RELE" sr
+        LEFT JOIN "DEVICE_PROSIS" dp ON sr.no = dp.no
+        WHERE sr.id_skema = $1
+        ORDER BY sr.no
+        `,
+        [id]
+    );
+
+    // 4. Ambil Skema_RTAC terkait (menggunakan nama skema sebagai kunci)
+    const rtacResult = await db.query(
+        `
+        SELECT "Tag_Name", "Gardu_Induk", "Bay_Target", "Skema", "Tahap"
+        FROM "Skema_RTAC"
+        WHERE "Skema" = $1
+        ORDER BY "Tahap", "Gardu_Induk"
+        `,
+        [skemaData.skema]
+    );
+
+    // 5. Susun snapshot lengkap
+    const snapshot = {
+        skema: skemaData,
+        mt: mtResult.rows,
+        rele: releResult.rows,
+        rtac: rtacResult.rows,
+        deleted_at: new Date().toISOString(),
+        deleted_by: user ? { id: user.id, username: user.username } : null,
+    };
+
+    // 6. Simpan backup ke audit_logs
+    await db.query(
+        `
+        INSERT INTO audit_logs (user_id, username, action, table_name, record_id, details)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        `,
+        [
+            user?.id || null,
+            user?.username || 'system',
+            'DELETE_BACKUP',
+            'SKEMA',
+            String(id),
+            JSON.stringify(snapshot),
+        ]
+    );
+
+    // 7. Hapus dari database (cascade ke child harus ditangani oleh DB FK, atau hapus manual)
     const result = await db.query(
         `
         DELETE FROM "SKEMA"
@@ -969,8 +1055,140 @@ exports.deleteSkema = async (id) => {
     );
 
     if (result.rows.length === 0) {
-        throw new Error(`Skema dengan ID ${id} tidak ditemukan.`);
+        throw new Error(`Skema dengan ID ${id} tidak ditemukan atau sudah dihapus.`);
     }
 
-    return result.rows[0];
+    return {
+        deleted: result.rows[0],
+        backup_created: true,
+        snapshot_summary: {
+            skema: skemaData.skema,
+            mt_count: mtResult.rows.length,
+            rele_count: releResult.rows.length,
+            rtac_count: rtacResult.rows.length,
+        },
+    };
+};
+
+// ========================================
+// GET DISTINCT GI — HIERARCHICAL DEVICE SELECTION
+// ========================================
+// Mengembalikan daftar GI unik dari DEVICE_PROSIS.
+// Opsional filter berdasarkan jenis.
+
+exports.getDistinctGI = async (jenis = '') => {
+    const normalizedJenis = jenis.trim();
+
+    let query;
+    let params;
+
+    if (normalizedJenis) {
+        query = `
+            SELECT DISTINCT gi
+            FROM "DEVICE_PROSIS"
+            WHERE gi IS NOT NULL
+              AND COALESCE(jenis, '') ILIKE $1
+            ORDER BY gi
+        `;
+        params = [`%${normalizedJenis}%`];
+    } else {
+        query = `
+            SELECT DISTINCT gi
+            FROM "DEVICE_PROSIS"
+            WHERE gi IS NOT NULL
+            ORDER BY gi
+        `;
+        params = [];
+    }
+
+    const result = await db.query(query, params);
+    return result.rows.map((r) => r.gi);
+};
+
+// ========================================
+// GET DEVICES BY GI AND JENIS — LEVEL 3/4 SELECTION
+// ========================================
+// Setelah user memilih GI (dan opsional jenis),
+// kembalikan daftar device yang sesuai.
+
+exports.getDevicesByGiAndJenis = async (gi = '', jenis = '', search = '') => {
+    const normalizedSearch = search.trim();
+    const keyword = `%${normalizedSearch}%`;
+
+    let conditions = ['dp.gi = $1'];
+    let params = [gi];
+    let paramIdx = 2;
+
+    if (jenis) {
+        conditions.push(`COALESCE(dp.jenis, '') ILIKE $${paramIdx}`);
+        params.push(`%${jenis}%`);
+        paramIdx++;
+    }
+
+    if (normalizedSearch) {
+        conditions.push(`(
+            CAST(dp.no AS TEXT) ILIKE $${paramIdx}
+            OR COALESCE(dp.tag_name, '') ILIKE $${paramIdx}
+            OR COALESCE(dp.merek, '') ILIKE $${paramIdx}
+            OR COALESCE(dp.tipe, '') ILIKE $${paramIdx}
+            OR COALESCE(dp.keterangan, '') ILIKE $${paramIdx}
+        )`);
+        params.push(keyword);
+        paramIdx++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const result = await db.query(
+        `
+        SELECT
+            dp.no,
+            dp.tag_name,
+            dp.gi,
+            dp.jenis,
+            dp.keterangan,
+            dp.merek,
+            dp.tipe
+        FROM "DEVICE_PROSIS" dp
+        ${whereClause}
+        ORDER BY dp.no
+        LIMIT 200
+        `,
+        params
+    );
+
+    return result.rows;
+};
+
+// ========================================
+// GET DISTINCT JENIS — FOR HIERARCHICAL FILTER
+// ========================================
+
+exports.getDistinctJenis = async (gi = '') => {
+    const normalizedGi = gi.trim();
+
+    let query;
+    let params;
+
+    if (normalizedGi) {
+        query = `
+            SELECT DISTINCT jenis
+            FROM "DEVICE_PROSIS"
+            WHERE jenis IS NOT NULL
+              AND gi = $1
+            ORDER BY jenis
+        `;
+        params = [normalizedGi];
+    } else {
+        query = `
+            SELECT DISTINCT jenis
+            FROM "DEVICE_PROSIS"
+            WHERE jenis IS NOT NULL
+            ORDER BY jenis
+        `;
+        params = [];
+    }
+
+    const result = await db.query(query, params);
+    return result.rows.map((r) => r.jenis);
 };
