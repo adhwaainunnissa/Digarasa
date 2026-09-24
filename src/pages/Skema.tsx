@@ -296,7 +296,11 @@ const HierarchicalDevicePicker = ({
     const [deviceList, setDeviceList] = useState<DeviceProsis[]>([]);
     const [loadingGI, setLoadingGI] = useState(false);
     const [loadingDevices, setLoadingDevices] = useState(false);
+    
+    // State pencarian
     const [deviceSearch, setDeviceSearch] = useState("");
+    const [giSearch, setGiSearch] = useState("");
+    
     const [jenisList, setJenisList] = useState<string[]>([]);
     const [loadingJenis, setLoadingJenis] = useState(false);
 
@@ -352,6 +356,11 @@ const HierarchicalDevicePicker = ({
         return () => clearTimeout(timer);
     }, [deviceSearch]);
 
+    // Memfilter daftar GI berdasarkan nilai input pencarian
+    const filteredGIList = giList.filter(gi => 
+        gi.toLowerCase().includes(giSearch.toLowerCase())
+    );
+
     const step1Done = tabType === "mt" ? true : !!selectedJenis;
     const step2Done = !!selectedGI;
     const step3Done = !!value;
@@ -395,13 +404,28 @@ const HierarchicalDevicePicker = ({
             {(tabType === "mt" || (tabType === "rele" && selectedJenis)) && (
                 <div>
                     <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500"><MapPin className="h-3 w-3" /> Langkah {tabType === "mt" ? "1" : "2"} — Gardu Induk</label>
+                    
+                    {/* Kotak Input Search untuk Gardu Induk */}
+                    <div className="relative mb-2">
+                        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                        <input 
+                            type="text" 
+                            placeholder="Cari gardu induk..." 
+                            value={giSearch} 
+                            onChange={(e) => setGiSearch(e.target.value)} 
+                            className="w-full rounded-xl border border-blue-100 bg-[#F5F9FF] py-2 pl-9 pr-3 text-xs outline-none transition-all focus:border-[#0066FF] focus:bg-white" 
+                        />
+                    </div>
+
                     {loadingGI ? (
                         <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-[#F5F9FF] px-3.5 py-2.5"><RefreshCw className="h-4 w-4 animate-spin text-[#0066FF]" /><span className="text-sm text-slate-500">Memuat GI...</span></div>
                     ) : giList.length === 0 ? (
                         <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-3 text-center text-xs font-semibold text-slate-400">Tidak ada Gardu Induk tersedia</div>
+                    ) : filteredGIList.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-3 text-center text-xs font-semibold text-slate-400">Gardu Induk tidak ditemukan</div>
                     ) : (
                         <div className="max-h-36 overflow-y-auto rounded-xl border border-blue-100 bg-white">
-                            {giList.map((gi) => (
+                            {filteredGIList.map((gi) => (
                                 <button key={gi} type="button" onClick={() => setSelectedGI(gi)} className={`flex w-full items-center justify-between px-3.5 py-2 text-sm transition-all first:rounded-t-xl last:rounded-b-xl ${selectedGI === gi ? "bg-blue-50 font-bold text-[#0066FF]" : "font-medium text-slate-700 hover:bg-blue-50/50"}`}>
                                     <span>{gi}</span>
                                     {selectedGI === gi && <Check className="h-4 w-4" />}
@@ -2268,7 +2292,7 @@ export default function Skema() {
                 </div>
             )}
 
-            {/* ========================================
+{/* ========================================
                 MODAL TAB
             ======================================== */}
 
@@ -2330,7 +2354,7 @@ export default function Skema() {
 
                         <form
                             onSubmit={handleSaveTab}
-                            className="space-y-5 px-6 py-6"
+                            className="space-y-5 px-6 py-6 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200"
                         >
                             <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-yellow-50 p-3.5">
                                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
@@ -2384,33 +2408,6 @@ export default function Skema() {
                                         />
                                     </div>
 
-                                    {showTabForm ===
-                                        "mt" && (
-                                        <div>
-                                            <label className="mb-1.5 block text-sm font-bold text-[#082B5F]">
-                                                Jenis
-                                                <span className="ml-2 text-[11px] font-normal text-slate-400">(opsional)</span>
-                                            </label>
-
-                                            <input
-                                                type="text"
-                                                value={
-                                                    formTabJenis
-                                                }
-                                                onChange={(
-                                                    e
-                                                ) =>
-                                                    setFormTabJenis(
-                                                        e
-                                                            .target
-                                                            .value
-                                                    )
-                                                }
-                                                placeholder="Diisi otomatis dari device..."
-                                                className="w-full rounded-xl border border-blue-100 bg-[#F5F9FF] px-3.5 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-[#0066FF] focus:bg-white focus:ring-4 focus:ring-[#0066FF]/10"
-                                            />
-                                        </div>
-                                    )}
                                 </>
                             )}
 
