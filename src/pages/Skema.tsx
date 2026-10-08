@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 
 // ========================================
-// TYPES
+// TIPE DATA
 // ========================================
 
 interface SkemaData {
@@ -117,7 +117,7 @@ interface ConfirmDialogState {
 }
 
 // ========================================
-// TOAST COMPONENT
+// KOMPONEN NOTIFIKASI
 // ========================================
 
 let _toastId = 0;
@@ -160,7 +160,7 @@ const ToastContainer = ({
 );
 
 // ========================================
-// CONFIRM DIALOG COMPONENT
+// KOMPONEN DIALOG KONFIRMASI
 // ========================================
 
 const ConfirmDialogModal = ({ dialog }: { dialog: ConfirmDialogState }) => {
@@ -202,7 +202,7 @@ const ConfirmDialogModal = ({ dialog }: { dialog: ConfirmDialogState }) => {
 };
 
 // ========================================
-// SEARCHABLE SELECT
+// PILIHAN YANG DAPAT DICARI
 // ========================================
 
 const SearchableSelect = ({
@@ -274,161 +274,394 @@ const SearchableSelect = ({
 };
 
 // ========================================
-// HIERARCHICAL DEVICE PICKER
+// PEMILIHAN PERANGKAT BERTAHAP
 // ========================================
-// Progressive device selection:
-//   MT:   GI → Device (pre-filtered by jenis=MT)
-//   RELE: Jenis → GI → Device
+// Pemilihan perangkat dilakukan secara bertahap:
+//   MT:   GI → Perangkat (sudah difilter berdasarkan jenis=MT)
+//   RELE: Jenis → GI → Perangkat
 
+// ============================================================
+// BAGIAN PEMILIHAN PERANGKAT MT / TP
+// Tab MT digunakan untuk memasukkan perangkat MT maupun TP.
+// Jenis perangkat dipilih melalui tombol "MT" atau "TP" pada formulir.
+// ============================================================
 const HierarchicalDevicePicker = ({
     tabType,
     value,
+    jenisValue,
     onChange,
+    onJenisChange,
 }: {
     tabType: "mt" | "rele";
     value: DeviceProsis | null;
+    jenisValue?: string;
     onChange: (device: DeviceProsis | null) => void;
+    onJenisChange?: (jenis: string) => void;
 }) => {
-    const defaultJenis = tabType === "mt" ? "MT" : "";
-    const [selectedJenis, setSelectedJenis] = useState<string>(defaultJenis);
+    // Untuk tab MT, jenis yang tersedia adalah MT dan TP.
+    // TP tidak dibuat sebagai tab baru, tetapi dimasukkan ke tab MT yang sama.
+    // Untuk tab RELE, jenis tetap diambil dari data jenis utama.
+    const [selectedJenis, setSelectedJenis] = useState<string>(
+        jenisValue || (tabType === "mt" ? "MT" : "")
+    );
     const [selectedGI, setSelectedGI] = useState<string>("");
     const [giList, setGIList] = useState<string[]>([]);
     const [deviceList, setDeviceList] = useState<DeviceProsis[]>([]);
     const [loadingGI, setLoadingGI] = useState(false);
     const [loadingDevices, setLoadingDevices] = useState(false);
-    
-    // State pencarian
+
     const [deviceSearch, setDeviceSearch] = useState("");
     const [giSearch, setGiSearch] = useState("");
-    
+
     const [jenisList, setJenisList] = useState<string[]>([]);
     const [loadingJenis, setLoadingJenis] = useState(false);
 
+    // Menyesuaikan jenis ketika membuka data untuk diedit.
+    useEffect(() => {
+        const nextJenis = jenisValue || (tabType === "mt" ? "MT" : "");
+        setSelectedJenis(nextJenis);
+    }, [jenisValue, tabType]);
+
+    // Memuat data jenis dan GI awal.
     useEffect(() => {
         if (tabType === "rele") {
             setLoadingJenis(true);
+
             api.get("/skema/devices/jenis")
-                .then((r) => setJenisList((r.data || []).filter((j: string) => j.toLowerCase().includes("rele") || j.toLowerCase().includes("test"))))
+                .then((r) =>
+                    setJenisList(
+                        (r.data || []).filter(
+                            (j: string) =>
+                                j.toLowerCase().includes("rele") ||
+                                j.toLowerCase().includes("test")
+                        )
+                    )
+                )
                 .catch(() => setJenisList([]))
                 .finally(() => setLoadingJenis(false));
         } else {
-            // MT: load GI immediately filtered by jenis=MT
+            // MT dan TP berada dalam tab yang sama.
+            // Pilihan jenis digunakan untuk menentukan perangkat
+            // yang akan ditampilkan saat pengguna ingin menambahkan data.
+            // Jenis awal adalah MT, tetapi pengguna dapat menggantinya menjadi TP.
+            // Untuk menambahkan TP, pilih tombol "TP" pada formulir.
+            const jenis = jenisValue || "MT";
+
             setLoadingGI(true);
-            api.get("/skema/devices/gi", { params: { jenis: "MT" } })
+            api.get("/skema/devices/gi", {
+                params: { jenis },
+            })
                 .then((r) => setGIList(r.data || []))
                 .catch(() => setGIList([]))
                 .finally(() => setLoadingGI(false));
         }
-    }, [tabType]);
+    }, [tabType, jenisValue]);
 
+    // Saat jenis berubah, daftar GI dimuat kembali.
     useEffect(() => {
-        if (tabType === "rele" && !selectedJenis) { setGIList([]); return; }
-        if (tabType === "mt") return; // already loaded on mount
+        if (!selectedJenis) {
+            setGIList([]);
+            setSelectedGI("");
+            setDeviceList([]);
+            onChange(null);
+            return;
+        }
+
         setLoadingGI(true);
         setSelectedGI("");
         setDeviceList([]);
         onChange(null);
-        api.get("/skema/devices/gi", { params: { jenis: selectedJenis } })
+
+        api.get("/skema/devices/gi", {
+            params: { jenis: selectedJenis },
+        })
             .then((r) => setGIList(r.data || []))
             .catch(() => setGIList([]))
             .finally(() => setLoadingGI(false));
     }, [selectedJenis]);
 
+    // Saat pengguna memilih jenis MT/TP, pilihan tersebut disimpan ke bagian utama.
     useEffect(() => {
-        if (!selectedGI) { setDeviceList([]); return; }
+        if (onJenisChange && selectedJenis) {
+            onJenisChange(selectedJenis);
+        }
+    }, [selectedJenis, onJenisChange]);
+
+    // Memuat perangkat berdasarkan GI dan jenis.
+    useEffect(() => {
+        if (!selectedGI || !selectedJenis) {
+            setDeviceList([]);
+            return;
+        }
+
         setLoadingDevices(true);
         onChange(null);
-        api.get("/skema/devices/filter", { params: { gi: selectedGI, jenis: selectedJenis, search: deviceSearch } })
+
+        api.get("/skema/devices/filter", {
+            params: {
+                gi: selectedGI,
+                jenis: selectedJenis,
+                search: deviceSearch,
+            },
+        })
             .then((r) => setDeviceList(r.data || []))
             .catch(() => setDeviceList([]))
             .finally(() => setLoadingDevices(false));
     }, [selectedGI, selectedJenis]);
 
+    // Mencari perangkat dengan jeda agar permintaan tidak terlalu sering.
     useEffect(() => {
-        if (!selectedGI) return;
+        if (!selectedGI || !selectedJenis) return;
+
         const timer = setTimeout(() => {
             setLoadingDevices(true);
-            api.get("/skema/devices/filter", { params: { gi: selectedGI, jenis: selectedJenis, search: deviceSearch } })
+
+            api.get("/skema/devices/filter", {
+                params: {
+                    gi: selectedGI,
+                    jenis: selectedJenis,
+                    search: deviceSearch,
+                },
+            })
                 .then((r) => setDeviceList(r.data || []))
                 .catch(() => setDeviceList([]))
                 .finally(() => setLoadingDevices(false));
         }, 300);
+
         return () => clearTimeout(timer);
     }, [deviceSearch]);
 
-    // Memfilter daftar GI berdasarkan nilai input pencarian
-    const filteredGIList = giList.filter(gi => 
+    const filteredGIList = giList.filter((gi) =>
         gi.toLowerCase().includes(giSearch.toLowerCase())
     );
 
-    const step1Done = tabType === "mt" ? true : !!selectedJenis;
+    const step1Done = !!selectedJenis;
     const step2Done = !!selectedGI;
     const step3Done = !!value;
 
-    const StepBadge = ({ n, label, done, active }: { n: number; label: string; done: boolean; active: boolean }) => (
+    const StepBadge = ({
+        n,
+        label,
+        done,
+        active,
+    }: {
+        n: number;
+        label: string;
+        done: boolean;
+        active: boolean;
+    }) => (
         <div className="flex items-center gap-1.5">
-            <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${done ? "bg-green-500 text-white" : active ? "bg-[#0066FF] text-white" : "bg-slate-100 text-slate-400"}`}>
+            <div
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                    done
+                        ? "bg-green-500 text-white"
+                        : active
+                          ? "bg-[#0066FF] text-white"
+                          : "bg-slate-100 text-slate-400"
+                }`}
+            >
                 {done ? <Check className="h-2.5 w-2.5" /> : n}
             </div>
-            <span className={`text-[11px] font-semibold ${done ? "text-green-600" : active ? "text-[#0066FF]" : "text-slate-400"}`}>{label}</span>
-            {n < 3 && <ArrowRight className="h-3 w-3 text-slate-200" />}
+
+            <span
+                className={`text-[11px] font-semibold ${
+                    done
+                        ? "text-green-600"
+                        : active
+                          ? "text-[#0066FF]"
+                          : "text-slate-400"
+                }`}
+            >
+                {label}
+            </span>
+
+            {n < 3 && (
+                <ArrowRight className="h-3 w-3 text-slate-200" />
+            )}
         </div>
     );
 
     return (
         <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[#F5F9FF] px-3 py-2">
-                <StepBadge n={1} label={tabType === "mt" ? "Jenis: MT" : "Pilih Jenis"} done={step1Done} active={!step1Done} />
-                <StepBadge n={2} label={step2Done ? `GI: ${selectedGI}` : "Pilih GI"} done={step2Done} active={step1Done && !step2Done} />
-                <StepBadge n={3} label={step3Done ? `No: ${value?.no}` : "Pilih Perangkat"} done={step3Done} active={step2Done && !step3Done} />
+                <StepBadge
+                    n={1}
+                    label={
+                        tabType === "mt"
+                            ? `Jenis: ${selectedJenis || "-"}`
+                            : "Pilih Jenis"
+                    }
+                    done={step1Done}
+                    active={!step1Done}
+                />
+
+                <StepBadge
+                    n={2}
+                    label={
+                        step2Done
+                            ? `GI: ${selectedGI}`
+                            : "Pilih GI"
+                    }
+                    done={step2Done}
+                    active={step1Done && !step2Done}
+                />
+
+                <StepBadge
+                    n={3}
+                    label={
+                        step3Done
+                            ? `No: ${value?.no}`
+                            : "Pilih Perangkat"
+                    }
+                    done={step3Done}
+                    active={step2Done && !step3Done}
+                />
             </div>
 
-            {/* Step 1: Jenis — only for RELE */}
+            {/* Langkah 1: memilih jenis perangkat yang akan dimasukkan.
+                MT = Metering / pengukuran
+                TP = perangkat TP
+                Keduanya disimpan pada tab MT yang sama. */}
+            {/* Langkah 1: Jenis */}
+            {tabType === "mt" && (
+                <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        <Tag className="h-3 w-3" />
+                        Langkah 1 — Jenis Perangkat
+                    </label>
+
+                    <div className="flex flex-wrap gap-2">
+                        {["MT", "TP"].map((jenis) => (
+                            <button
+                                key={jenis}
+                                type="button"
+                                onClick={() => {
+                                    setSelectedJenis(jenis);
+                                    onJenisChange?.(jenis);
+                                }}
+                                className={`rounded-lg border px-4 py-2 text-xs font-bold transition-all ${
+                                    selectedJenis === jenis
+                                        ? "border-[#0066FF] bg-[#0066FF] text-white shadow-sm"
+                                        : "border-blue-100 bg-white text-slate-600 hover:border-blue-300 hover:text-[#0066FF]"
+                                }`}
+                            >
+                                {jenis}
+                            </button>
+                        ))}
+                    </div>
+
+                    <p className="mt-1.5 text-[10px] text-slate-400">
+                        Pilih MT untuk memasukkan data MT atau TP untuk memasukkan data TP.
+                    </p>
+                </div>
+            )}
+
+            {/* Langkah 1: Jenis untuk RELE */}
             {tabType === "rele" && (
                 <div>
-                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500"><Tag className="h-3 w-3" /> Langkah 1 — Jenis</label>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        <Tag className="h-3 w-3" />
+                        Langkah 1 — Jenis
+                    </label>
+
                     {loadingJenis ? (
-                        <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-[#F5F9FF] px-3.5 py-2.5"><RefreshCw className="h-4 w-4 animate-spin text-[#0066FF]" /><span className="text-sm text-slate-500">Memuat...</span></div>
+                        <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-[#F5F9FF] px-3.5 py-2.5">
+                            <RefreshCw className="h-4 w-4 animate-spin text-[#0066FF]" />
+                            <span className="text-sm text-slate-500">
+                                Memuat...
+                            </span>
+                        </div>
                     ) : (
                         <div className="flex flex-wrap gap-1.5">
                             {jenisList.map((j) => (
-                                <button key={j} type="button" onClick={() => setSelectedJenis(j)} className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${selectedJenis === j ? "border-[#0066FF] bg-[#0066FF] text-white" : "border-blue-100 bg-white text-slate-600 hover:border-blue-300 hover:text-[#0066FF]"}`}>{j}</button>
+                                <button
+                                    key={j}
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedJenis(j);
+                                        onJenisChange?.(j);
+                                    }}
+                                    className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
+                                        selectedJenis === j
+                                            ? "border-[#0066FF] bg-[#0066FF] text-white"
+                                            : "border-blue-100 bg-white text-slate-600 hover:border-blue-300 hover:text-[#0066FF]"
+                                    }`}
+                                >
+                                    {j}
+                                </button>
                             ))}
-                            {selectedJenis && <button type="button" onClick={() => { setSelectedJenis(""); setSelectedGI(""); onChange(null); }} className="rounded-lg border border-slate-100 bg-white p-1.5 text-slate-400 hover:bg-slate-50"><X className="h-3 w-3" /></button>}
+
+                            {selectedJenis && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedJenis("");
+                                        setSelectedGI("");
+                                        onChange(null);
+                                        onJenisChange?.("");
+                                    }}
+                                    className="rounded-lg border border-slate-100 bg-white p-1.5 text-slate-400 hover:bg-slate-50"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>
             )}
 
-            {/* Step 2: GI */}
-            {(tabType === "mt" || (tabType === "rele" && selectedJenis)) && (
+            {/* Langkah 2: GI */}
+            {selectedJenis && (
                 <div>
-                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500"><MapPin className="h-3 w-3" /> Langkah {tabType === "mt" ? "1" : "2"} — Gardu Induk</label>
-                    
-                    {/* Kotak Input Search untuk Gardu Induk */}
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        <MapPin className="h-3 w-3" />
+                        Langkah 2 — Gardu Induk
+                    </label>
+
                     <div className="relative mb-2">
                         <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                        <input 
-                            type="text" 
-                            placeholder="Cari gardu induk..." 
-                            value={giSearch} 
-                            onChange={(e) => setGiSearch(e.target.value)} 
-                            className="w-full rounded-xl border border-blue-100 bg-[#F5F9FF] py-2 pl-9 pr-3 text-xs outline-none transition-all focus:border-[#0066FF] focus:bg-white" 
+
+                        <input
+                            type="text"
+                            placeholder="Cari gardu induk..."
+                            value={giSearch}
+                            onChange={(e) => setGiSearch(e.target.value)}
+                            className="w-full rounded-xl border border-blue-100 bg-[#F5F9FF] py-2 pl-9 pr-3 text-xs outline-none transition-all focus:border-[#0066FF] focus:bg-white"
                         />
                     </div>
 
                     {loadingGI ? (
-                        <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-[#F5F9FF] px-3.5 py-2.5"><RefreshCw className="h-4 w-4 animate-spin text-[#0066FF]" /><span className="text-sm text-slate-500">Memuat GI...</span></div>
+                        <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-[#F5F9FF] px-3.5 py-2.5">
+                            <RefreshCw className="h-4 w-4 animate-spin text-[#0066FF]" />
+                            <span className="text-sm text-slate-500">
+                                Memuat GI...
+                            </span>
+                        </div>
                     ) : giList.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-3 text-center text-xs font-semibold text-slate-400">Tidak ada Gardu Induk tersedia</div>
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-3 text-center text-xs font-semibold text-slate-400">
+                            Tidak ada Gardu Induk untuk jenis {selectedJenis}
+                        </div>
                     ) : filteredGIList.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-3 text-center text-xs font-semibold text-slate-400">Gardu Induk tidak ditemukan</div>
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-3 text-center text-xs font-semibold text-slate-400">
+                            Gardu Induk tidak ditemukan
+                        </div>
                     ) : (
                         <div className="max-h-36 overflow-y-auto rounded-xl border border-blue-100 bg-white">
                             {filteredGIList.map((gi) => (
-                                <button key={gi} type="button" onClick={() => setSelectedGI(gi)} className={`flex w-full items-center justify-between px-3.5 py-2 text-sm transition-all first:rounded-t-xl last:rounded-b-xl ${selectedGI === gi ? "bg-blue-50 font-bold text-[#0066FF]" : "font-medium text-slate-700 hover:bg-blue-50/50"}`}>
+                                <button
+                                    key={gi}
+                                    type="button"
+                                    onClick={() => setSelectedGI(gi)}
+                                    className={`flex w-full items-center justify-between px-3.5 py-2 text-sm transition-all first:rounded-t-xl last:rounded-b-xl ${
+                                        selectedGI === gi
+                                            ? "bg-blue-50 font-bold text-[#0066FF]"
+                                            : "font-medium text-slate-700 hover:bg-blue-50/50"
+                                    }`}
+                                >
                                     <span>{gi}</span>
-                                    {selectedGI === gi && <Check className="h-4 w-4" />}
+                                    {selectedGI === gi && (
+                                        <Check className="h-4 w-4" />
+                                    )}
                                 </button>
                             ))}
                         </div>
@@ -436,45 +669,155 @@ const HierarchicalDevicePicker = ({
                 </div>
             )}
 
-            {/* Step 3: Device */}
+            {/* Langkah 3: Perangkat */}
             {selectedGI && (
                 <div>
-                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500"><Layers className="h-3 w-3" /> Langkah {tabType === "mt" ? "2" : "3"} — Perangkat</label>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        <Layers className="h-3 w-3" />
+                        Langkah 3 — Perangkat
+                    </label>
+
                     <div className="relative mb-2">
                         <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                        <input type="text" placeholder="Cari tag name, merek, tipe..." value={deviceSearch} onChange={(e) => setDeviceSearch(e.target.value)} className="w-full rounded-xl border border-blue-100 bg-[#F5F9FF] py-2 pl-9 pr-3 text-xs outline-none transition-all focus:border-[#0066FF] focus:bg-white" />
+
+                        <input
+                            type="text"
+                            placeholder="Cari tag name, merek, tipe..."
+                            value={deviceSearch}
+                            onChange={(e) => setDeviceSearch(e.target.value)}
+                            className="w-full rounded-xl border border-blue-100 bg-[#F5F9FF] py-2 pl-9 pr-3 text-xs outline-none transition-all focus:border-[#0066FF] focus:bg-white"
+                        />
                     </div>
+
                     {loadingDevices ? (
                         <div className="flex items-center justify-center gap-2 rounded-xl border border-blue-100 bg-[#F5F9FF] py-6">
-                            <RefreshCw className="h-4 w-4 animate-spin text-[#0066FF]" /><span className="text-sm text-slate-500">Memuat perangkat...</span>
+                            <RefreshCw className="h-4 w-4 animate-spin text-[#0066FF]" />
+                            <span className="text-sm text-slate-500">
+                                Memuat perangkat...
+                            </span>
                         </div>
                     ) : deviceList.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-4 text-center text-xs font-semibold text-slate-400">Tidak ada perangkat di {selectedGI}</div>
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-4 text-center text-xs font-semibold text-slate-400">
+                            Tidak ada perangkat {selectedJenis} di {selectedGI}
+                        </div>
                     ) : (
                         <div className="max-h-48 overflow-y-auto rounded-xl border border-blue-100 bg-white">
                             {deviceList.map((d) => {
                                 const sel = value?.no === d.no;
+
                                 return (
-                                    <button key={d.no} type="button" onClick={() => onChange(sel ? null : d)} className={`flex w-full items-start justify-between border-b border-blue-50 px-3.5 py-2.5 text-left text-xs transition-all last:border-b-0 first:rounded-t-xl last:rounded-b-xl ${sel ? "bg-blue-50" : "hover:bg-blue-50/40"}`}>
+                                    <button
+                                        key={d.no}
+                                        type="button"
+                                        onClick={() =>
+                                            onChange(sel ? null : d)
+                                        }
+                                        className={`flex w-full items-start justify-between border-b border-blue-50 px-3.5 py-2.5 text-left text-xs transition-all last:border-b-0 first:rounded-t-xl last:rounded-b-xl ${
+                                            sel
+                                                ? "bg-blue-50"
+                                                : "hover:bg-blue-50/40"
+                                        }`}
+                                    >
                                         <div>
-                                            <div className={`font-mono font-bold ${sel ? "text-[#0066FF]" : "text-[#082B5F]"}`}>#{d.no}{d.tag_name && <span className="ml-1 font-mono text-[10px] text-slate-400">{d.tag_name}</span>}</div>
-                                            <div className="mt-0.5 text-[10px] text-slate-500">{[d.jenis, d.merek, d.tipe].filter(Boolean).join(" · ")}</div>
-                                            {d.keterangan && <div className="mt-0.5 truncate text-[10px] text-slate-400">{d.keterangan}</div>}
+                                            <div
+                                                className={`font-mono font-bold ${
+                                                    sel
+                                                        ? "text-[#0066FF]"
+                                                        : "text-[#082B5F]"
+                                                }`}
+                                            >
+                                                #{d.no}
+                                                {d.tag_name && (
+                                                    <span className="ml-1 font-mono text-[10px] text-slate-400">
+                                                        {d.tag_name}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="mt-0.5 text-[10px] text-slate-500">
+                                                {[
+                                                    d.jenis,
+                                                    d.merek,
+                                                    d.tipe,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(" · ")}
+                                            </div>
+
+                                            {d.keterangan && (
+                                                <div className="mt-0.5 truncate text-[10px] text-slate-400">
+                                                    {d.keterangan}
+                                                </div>
+                                            )}
                                         </div>
-                                        {sel && <Check className="ml-2 mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0066FF]" />}
+
+                                        {sel && (
+                                            <Check className="ml-2 mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0066FF]" />
+                                        )}
                                     </button>
                                 );
                             })}
                         </div>
                     )}
+
                     {value && (
                         <div className="mt-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
-                            <div className="mb-1 flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-green-500" /><span className="text-xs font-bold text-green-700">Perangkat Terpilih</span></div>
+                            <div className="mb-1 flex items-center gap-2">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                                <span className="text-xs font-bold text-green-700">
+                                    Perangkat Terpilih
+                                </span>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                                <div><span className="text-slate-400">No: </span><span className="font-mono font-bold text-[#082B5F]">{value.no}</span></div>
-                                <div><span className="text-slate-400">GI: </span><span className="font-semibold text-[#082B5F]">{value.gi || "-"}</span></div>
-                                {value.merek && <div><span className="text-slate-400">Merek: </span><span className="font-semibold text-[#082B5F]">{value.merek}</span></div>}
-                                {value.tipe && <div><span className="text-slate-400">Tipe: </span><span className="font-semibold text-[#082B5F]">{value.tipe}</span></div>}
+                                <div>
+                                    <span className="text-slate-400">
+                                        No:{" "}
+                                    </span>
+                                    <span className="font-mono font-bold text-[#082B5F]">
+                                        {value.no}
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <span className="text-slate-400">
+                                        Jenis:{" "}
+                                    </span>
+                                    <span className="font-semibold text-[#0066FF]">
+                                        {selectedJenis || value.jenis || "-"}
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <span className="text-slate-400">
+                                        GI:{" "}
+                                    </span>
+                                    <span className="font-semibold text-[#082B5F]">
+                                        {value.gi || "-"}
+                                    </span>
+                                </div>
+
+                                {value.merek && (
+                                    <div>
+                                        <span className="text-slate-400">
+                                            Merek:{" "}
+                                        </span>
+                                        <span className="font-semibold text-[#082B5F]">
+                                            {value.merek}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {value.tipe && (
+                                    <div>
+                                        <span className="text-slate-400">
+                                            Tipe:{" "}
+                                        </span>
+                                        <span className="font-semibold text-[#082B5F]">
+                                            {value.tipe}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -485,12 +828,12 @@ const HierarchicalDevicePicker = ({
 };
 
 // ========================================
-// MAIN
+// BAGIAN UTAMA
 // ========================================
 
 export default function Skema() {
     // ========================================
-    // STATE
+    // STATUS DATA
     // ========================================
 
     const [data, setData] = useState<SkemaData[]>([]);
@@ -501,7 +844,7 @@ export default function Skema() {
     const [subsistem, setSubsistem] = useState<Subsistem[]>([]);
 
     // ========================================
-    // TOAST STATE
+    // STATUS NOTIFIKASI
     // ========================================
 
     const [toasts, setToasts] = useState<Toast[]>([]);
@@ -517,7 +860,7 @@ export default function Skema() {
     }, []);
 
     // ========================================
-    // CONFIRM DIALOG STATE
+    // STATUS DIALOG KONFIRMASI
     // ========================================
 
     const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
@@ -549,7 +892,7 @@ export default function Skema() {
         useState<SkemaRTAC[]>([]);
 
     // ========================================
-    // MODALS
+    // JENDELA MODAL
     // ========================================
 
     const [showSkemaForm, setShowSkemaForm] =
@@ -585,7 +928,7 @@ export default function Skema() {
     const [saving, setSaving] = useState(false);
 
     // ========================================
-    // USER
+    // DATA PENGGUNA
     // ========================================
 
     const user = useMemo(() => {
@@ -601,7 +944,7 @@ export default function Skema() {
     const isAdmin = user?.role === "admin";
 
     // ========================================
-    // LOAD
+    // PEMUATAN DATA
     // ========================================
 
     useEffect(() => {
@@ -648,7 +991,7 @@ export default function Skema() {
     };
 
     // ========================================
-    // SELECT SKEMA
+    // PEMILIHAN SKEMA
     // ========================================
 
     const handleSelectSkema = (
@@ -709,11 +1052,11 @@ export default function Skema() {
         }
     };
 
-    // MT and RELE data is now enriched by the backend via JOIN,
-    // so enrichedMT and enrichedRele are just aliases for the state.
+    // Data MT dan RELE sudah dilengkapi oleh backend melalui proses penggabungan data (JOIN),
+    // sehingga enrichedMT dan enrichedRele hanya menjadi nama lain dari data yang tersimpan.
 
     // ========================================
-    // CRUD SKEMA
+    // KELOLA DATA SKEMA
     // ========================================
 
     const openAddSkema = () => {
@@ -728,7 +1071,7 @@ export default function Skema() {
     const openEditSkema = (e: React.MouseEvent, item: SkemaData) => {
         e.stopPropagation();
         if (!isAdmin) { showToast("warning", "Anda tidak memiliki izin admin."); return; }
-        // Pre-fill all SKEMA fields — this ONLY edits the SKEMA table, not DEVICE_PROSIS
+        // Mengisi data awal pada semua kolom SKEMA — bagian ini HANYA mengubah tabel SKEMA, bukan DEVICE_PROSIS
         setEditingSkemaId(item.id_skema);
         setFormSkemaName(item.skema);
         setFormSkemaSub(subsistem.find((s) => s.id_ss === item.id_ss) || null);
@@ -742,7 +1085,7 @@ export default function Skema() {
 
         try {
             setSaving(true);
-            // Payload targets SKEMA table ONLY. DEVICE_PROSIS is never touched here.
+            // Data yang dikirim HANYA ditujukan ke tabel SKEMA. DEVICE_PROSIS tidak diubah pada bagian ini.
             const payload = {
                 skema: formSkemaName.trim(),
                 id_ss: formSkemaSub ? formSkemaSub.id_ss : null,
@@ -793,7 +1136,7 @@ export default function Skema() {
     };
 
     // ========================================
-    // CRUD TAB
+    // KELOLA DATA TAB
     // ========================================
 
     const openAddTab = (type: "mt" | "rele" | "rtac") => {
@@ -853,7 +1196,7 @@ export default function Skema() {
                 } else {
                     await api.post(`/skema/${selectedSkema.id_skema}/mt`, payload);
                 }
-                showToast("success", `MT berhasil ${editingTabItem ? "diperbarui" : "ditambahkan"}.`);
+                showToast("success", `${formTabJenis || "MT"} berhasil ${editingTabItem ? "diperbarui" : "ditambahkan"}.`);
             } else if (showTabForm === "rele") {
                 if (!formTabDevice) { showToast("warning", "Pilih peralatan terlebih dahulu."); return; }
                 payload = { no: formTabDevice.no, id_skema: selectedSkema.id_skema };
@@ -916,7 +1259,7 @@ export default function Skema() {
     };
 
     // ========================================
-    // HELPERS
+    // FUNGSI BANTU
     // ========================================
 
     const getStatusStyle = (
@@ -978,7 +1321,7 @@ export default function Skema() {
     }, [pagination]);
 
     // ========================================
-    // RENDER
+    // TAMPILAN HALAMAN
     // ========================================
 
     return (
@@ -1096,7 +1439,7 @@ export default function Skema() {
             `}</style>
 
             {/* ========================================
-                BACKGROUND DECORATION
+                DEKORASI LATAR BELAKANG
             ======================================== */}
 
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -1118,11 +1461,11 @@ export default function Skema() {
             </div>
 
             {/* ========================================
-                LEFT SIDEBAR
+                BAGIAN SAMPING KIRI
             ======================================== */}
 
             <aside className="relative z-10 flex w-full shrink-0 flex-col border-b border-blue-100 bg-white/95 shadow-[4px_0_24px_rgba(0,102,255,.05)] backdrop-blur-xl md:w-96 md:border-b-0 md:border-r">
-                {/* HEADER */}
+                {/* BAGIAN KEPALA */}
 
                 <div className="border-b border-blue-50 bg-gradient-to-r from-white via-[#F5F9FF] to-white px-6 py-5">
                     <div className="flex items-center justify-between">
@@ -1157,7 +1500,7 @@ export default function Skema() {
                         )}
                     </div>
 
-                    {/* SEARCH */}
+                    {/* PENCARIAN */}
 
                     <div className="relative mt-5">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0066FF]" />
@@ -1198,7 +1541,7 @@ export default function Skema() {
                     </div>
                 </div>
 
-                {/* LIST */}
+                {/* DAFTAR DATA */}
 
                 <div className="relative flex-1 overflow-y-auto p-3">
                     {loading ? (
@@ -1338,7 +1681,7 @@ export default function Skema() {
                     )}
                 </div>
 
-                {/* PAGINATION */}
+                {/* NOMOR HALAMAN */}
 
                 {pagination &&
                     data.length > 0 && (
@@ -1406,7 +1749,7 @@ export default function Skema() {
             </aside>
 
             {/* ========================================
-                RIGHT DETAIL
+                BAGIAN DETAIL KANAN
             ======================================== */}
 
             <main className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden bg-white/70 backdrop-blur-sm">
@@ -1435,7 +1778,7 @@ export default function Skema() {
                     </div>
                 ) : (
                     <div className="flex h-full flex-1 flex-col overflow-hidden skema-page-enter">
-                        {/* DETAIL HEADER */}
+                        {/* BAGIAN KEPALA DETAIL */}
 
                         <div className="relative shrink-0 overflow-hidden border-b border-blue-100 bg-gradient-to-r from-[#F5F9FF] via-white to-blue-50/50 px-8 py-6">
                             <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[#00BFFF]/8 blur-3xl" />
@@ -1479,7 +1822,7 @@ export default function Skema() {
                             </div>
                         </div>
 
-                        {/* TABS */}
+                        {/* TAB */}
 
                         <div className="flex shrink-0 gap-6 overflow-x-auto border-b border-blue-100 bg-white px-8 pt-2">
                             {[
@@ -1537,10 +1880,10 @@ export default function Skema() {
                             ))}
                         </div>
 
-                        {/* CONTENT */}
+                        {/* ISI KONTEN */}
 
                         <div className="flex-1 overflow-y-auto bg-[#F5F9FF]/40 p-8">
-                            {/* INFO */}
+                            {/* INFORMASI */}
 
                             {activeTab ===
                                 "info" && (
@@ -1629,15 +1972,14 @@ export default function Skema() {
                                 <div>
                                     <div className="mb-5 flex items-center justify-between">
                                         <div>
+                                            {/* Judul bagian perangkat pada skema.
+     * MT dan TP ditampilkan dalam satu bagian/tabel yang sama. */}
                                             <h3 className="text-lg font-extrabold text-[#082B5F]">
-                                                Perangkat MT
-                                                (Metering)
+                                                Perangkat MT / TP
                                             </h3>
 
                                             <p className="mt-1 text-xs text-slate-400">
-                                                Daftar perangkat
-                                                metering pada
-                                                skema ini
+                                                Daftar perangkat MT dan TP pada skema ini
                                             </p>
                                         </div>
 
@@ -1651,7 +1993,7 @@ export default function Skema() {
                                                 className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#00BFFF] px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5 hover:shadow-lg"
                                             >
                                                 <Plus className="h-4 w-4" />
-                                                Tambah MT
+                                                Tambah MT / TP
                                             </button>
                                         )}
                                     </div>
@@ -2388,7 +2730,7 @@ export default function Skema() {
                                             </span>
                                         </label>
 
-                                        {/* Show current device info when editing */}
+                                        {/* Menampilkan informasi perangkat saat data sedang diedit */}
                                         {editingTabItem && (
                                             <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
                                                 <p className="text-xs font-bold text-amber-700 mb-1">Perangkat Saat Ini</p>
@@ -2404,7 +2746,14 @@ export default function Skema() {
                                         <HierarchicalDevicePicker
                                             tabType={showTabForm as "mt" | "rele"}
                                             value={formTabDevice}
-                                            onChange={setFormTabDevice}
+                                            jenisValue={formTabJenis}
+                                            onChange={(device) => {
+                                                setFormTabDevice(device);
+                                                if (showTabForm === "mt" && device?.jenis) {
+                                                    setFormTabJenis(device.jenis);
+                                                }
+                                            }}
+                                            onJenisChange={setFormTabJenis}
                                         />
                                     </div>
 
@@ -2573,10 +2922,10 @@ export default function Skema() {
                     </div>
                 </div>
             )}
-            {/* CONFIRM DIALOG */}
+            {/* DIALOG KONFIRMASI */}
             <ConfirmDialogModal dialog={confirmDialog} />
 
-            {/* TOAST SYSTEM */}
+            {/* SISTEM NOTIFIKASI */}
             <ToastContainer toasts={toasts} onRemove={removeToast} />
         </div>
     );
