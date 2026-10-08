@@ -23,12 +23,12 @@ const app = express();
 // MIDDLEWARE
 // ========================================
 
-app.use(
-    cors({
-        origin: "http://localhost:5173",
-    })
-);
-
+app.use(cors({
+    origin: [
+        "http://localhost:5173",
+        "http://10.6.31.161:5173"
+    ]
+}));
 app.use(express.json());
 
 
@@ -159,10 +159,10 @@ app.use(
 const PORT =
     process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
 
     console.log(
-        `🚀 Server berjalan di http://localhost:${PORT}`
-    );
+        `🚀 Server berjalan di http://0.0.0.0:${PORT}`);
+    
 
 });
