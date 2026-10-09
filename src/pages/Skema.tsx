@@ -63,7 +63,8 @@ interface SkemaMT {
     subsistem: string | null;
     tag_name: string | null;
     gi: string | null;
-    jenis: string | null;
+    jenis: number | null;        // sm.jenis dari SKEMA_MT (integer: 2 atau NULL)
+    device_jenis: string | null; // dp.jenis dari DEVICE_PROSIS (teks: "MT" atau "TP")
     keterangan: string | null;
     merek: string | null;
     tipe: string | null;
@@ -1146,6 +1147,8 @@ export default function Skema() {
         setFormTabDevice(null);
         setFormTabJenis("");
         setFormTabRtac({});
+        // Reset dropdown kode jenis ke nilai awal saat form tambah dibuka
+        setKodeJenis("2");
     };
 
     const openEditTab = (type: "mt" | "rele" | "rtac", row: any) => {
@@ -1162,18 +1165,26 @@ export default function Skema() {
                 no: row.no,
                 tag_name: row.tag_name,
                 gi: row.gi,
-                jenis: row.jenis,
+                jenis: row.device_jenis ?? row.jenis,
                 keterangan: row.keterangan,
                 merek: row.merek,
                 tipe: row.tipe,
             } as DeviceProsis);
 
-            setFormTabJenis(row.jenis || "");
+            setFormTabJenis(row.device_jenis || row.jenis || "");
+
+            // Inisialisasi dropdown kode jenis dari nilai SKEMA_MT.jenis yang tersimpan.
+            // Backend mengembalikan sm.jenis (integer) saat query getSkemaMT.
+            // Untuk MT: jenis adalah integer (2) atau NULL.
+            if (type === "mt") {
+                setKodeJenis(row.jenis === 2 || row.jenis === "2" ? "2" : "null");
+            }
         } else if (type === "rtac") {
             setFormTabRtac(row);
         }
     };
-
+    
+const [kodeJenis, setKodeJenis] = useState<"2" | "null">("2");
     const handleSaveTab = async (
         e: React.FormEvent
     ) => {
@@ -1189,7 +1200,12 @@ export default function Skema() {
 
             if (showTabForm === "mt") {
                 if (!formTabDevice) { showToast("warning", "Pilih peralatan terlebih dahulu."); return; }
-                payload = { no: formTabDevice.no, id_skema: selectedSkema.id_skema, jenis: formTabJenis || null };
+                payload = {
+                    no: formTabDevice.no,
+                    id_skema: selectedSkema.id_skema,
+                    jenis: formTabJenis || null,
+                    jenis_kode: kodeJenis === "2" ? 2 : null,
+                };
 
                 if (editingTabItem) {
                     await api.put(`/skema/${selectedSkema.id_skema}/mt/${editingTabItem.no}`, payload);
@@ -2029,7 +2045,10 @@ export default function Skema() {
                                                             Merek / Tipe
                                                         </th>
                                                         <th className="px-4 py-3">
-                                                            Jenis
+                                                            Jenis Perangkat
+                                                        </th>
+                                                        <th className="px-4 py-3">
+                                                            Kode
                                                         </th>
                                                         <th className="px-4 py-3">
                                                             Keterangan
@@ -2081,8 +2100,18 @@ export default function Skema() {
 
                                                                 <td className="px-4 py-3">
                                                                     <span className="rounded-lg border border-yellow-200 bg-yellow-50 px-2 py-1 text-xs font-bold text-[#B58900]">
-                                                                        {row.jenis ||
+                                                                        {row.device_jenis ||
                                                                             "-"}
+                                                                    </span>
+                                                                </td>
+
+                                                                <td className="px-4 py-3">
+                                                                    <span className={`rounded-lg border px-2 py-1 text-xs font-bold ${
+                                                                        row.jenis === 2
+                                                                            ? "border-blue-200 bg-blue-50 text-[#0066FF]"
+                                                                            : "border-slate-200 bg-slate-50 text-slate-500"
+                                                                    }`}>
+                                                                        {row.jenis === 2 ? "2" : "NULL"}
                                                                     </span>
                                                                 </td>
 
@@ -2756,6 +2785,35 @@ export default function Skema() {
                                             onJenisChange={setFormTabJenis}
                                         />
                                     </div>
+
+                                    {/* Dropdown Kode Jenis Penyimpanan — hanya untuk tab MT */}
+                                    {showTabForm === "mt" && (
+                                        <div>
+                                            <label className="mb-1.5 block text-sm font-bold text-[#082B5F]">
+                                                Kode Jenis Penyimpanan{" "}
+                                                <span className="text-red-500">*</span>
+                                            </label>
+
+                                            <select
+                                                value={kodeJenis}
+                                                onChange={(e) =>
+                                                    setKodeJenis(
+                                                        e.target.value as "2" | "null"
+                                                    )
+                                                }
+                                                className="w-full rounded-xl border border-blue-100 bg-[#F5F9FF] px-3.5 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-[#0066FF] focus:bg-white focus:ring-4 focus:ring-[#0066FF]/10"
+                                            >
+                                                <option value="2">2 — Simpan angka 2</option>
+                                                <option value="null">NULL — Simpan NULL</option>
+                                            </select>
+
+                                            <p className="mt-1 text-[10px] text-slate-400">
+                                                Pilih kode yang akan disimpan ke kolom{" "}
+                                                <span className="font-mono">SKEMA_MT.jenis</span>.
+                                                Nilai ini bebas dari jenis perangkat (MT/TP).
+                                            </p>
+                                        </div>
+                                    )}
 
                                 </>
                             )}

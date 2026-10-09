@@ -271,15 +271,20 @@ exports.getSkemaMT = async (idSkema) => {
 // CREATE MT
 // ========================================
 
-exports.createSkemaMT = async (idSkema, { no, jenis }) => {
+
+
+exports.createSkemaMT = async (idSkema, { no, jenis, jenis_kode }) => {
     await validateSkemaExists(idSkema);
 
+    // Validasi perangkat
     if (no === null || no === undefined || no === "") {
         throw new Error("Device wajib dipilih.");
     }
 
+    // Pastikan perangkat ada di DEVICE_PROSIS
     const device = await validateDeviceExists(no);
 
+    // Cek apakah perangkat sudah terdaftar pada skema
     const duplicate = await db.query(
         `
         SELECT 1
@@ -292,27 +297,36 @@ exports.createSkemaMT = async (idSkema, { no, jenis }) => {
     );
 
     if (duplicate.rows.length > 0) {
-        throw new Error("Device tersebut sudah terdaftar pada MT skema ini.");
+        throw new Error(
+            "Device tersebut sudah terdaftar pada MT skema ini."
+        );
     }
 
-    const resolvedJenis =
-        jenis === null || jenis === undefined || jenis === ""
-            ? device.jenis
-            : String(jenis).trim();
-
-            console.log("DEBUG createSkemaMT:", {
-    idSkema,
-    no,
-    jenis,
-    resolvedJenis,
-    types: {
-        idSkema: typeof idSkema,
-        no: typeof no,
-        resolvedJenis: typeof resolvedJenis
+    // Pilihan kode jenis dari frontend:
+    // 2    -> simpan angka 2
+    // null -> simpan NULL
+    // Properti jenis_kode wajib dikirim frontend.
+    if (jenis_kode === undefined) {
+        throw new Error("Pilih kode jenis: 2 atau NULL.");
     }
-});
+
+    let resolvedJenis = null;
+
+    if (jenis_kode === 2 || jenis_kode === "2") {
+        resolvedJenis = 2;
+    } else if (
+        jenis_kode === null ||
+        jenis_kode === "null"
+    ) {
+        resolvedJenis = null;
+    } else {
+        throw new Error(
+            "Kode jenis tidak valid. Pilih 2 atau NULL."
+        );
+    }
+
+    // Simpan perangkat MT/TP ke tabel SKEMA_MT
     const result = await db.query(
-
         `
         INSERT INTO "SKEMA_MT"
         (
@@ -323,17 +337,18 @@ exports.createSkemaMT = async (idSkema, { no, jenis }) => {
         VALUES ($1, $2, $3)
         RETURNING no, id_skema, jenis
         `,
-        [idSkema, no, resolvedJenis || null]
+        [idSkema, no, resolvedJenis]
     );
 
     return result.rows[0];
 };
 
+
 // ========================================
 // UPDATE MT
 // ========================================
 
-exports.updateSkemaMT = async (idSkema, no, { newNo, jenis }) => {
+exports.updateSkemaMT = async (idSkema, no, { newNo, jenis, jenis_kode }) => {
     await validateSkemaExists(idSkema);
     await validateDeviceExists(newNo ?? no);
 
@@ -370,15 +385,28 @@ exports.updateSkemaMT = async (idSkema, no, { newNo, jenis }) => {
         }
     }
 
-    let resolvedJenis = jenis;
+    // Resolusi jenis dari jenis_kode jika dikirim oleh frontend.
+    // jenis_kode: 2 atau "2"  → simpan integer 2
+    // jenis_kode: null atau "null" → simpan NULL
+    // Jika jenis_kode tidak dikirim, pertahankan nilai yang sudah ada di database.
+    let resolvedJenis;
 
-    if (resolvedJenis === undefined) {
+    if (jenis_kode !== undefined) {
+        if (jenis_kode === 2 || jenis_kode === "2") {
+            resolvedJenis = 2;
+        } else if (
+            jenis_kode === null ||
+            jenis_kode === "null"
+        ) {
+            resolvedJenis = null;
+        } else {
+            throw new Error(
+                "Kode jenis tidak valid. Pilih 2 atau NULL."
+            );
+        }
+    } else {
+        // Fallback: pertahankan nilai jenis yang sudah tersimpan
         resolvedJenis = existing.rows[0].jenis;
-    }
-
-    if (resolvedJenis === null || resolvedJenis === "") {
-        const device = await validateDeviceExists(targetNo);
-        resolvedJenis = device.jenis || null;
     }
 
     const result = await db.query(
