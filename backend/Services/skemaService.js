@@ -300,7 +300,19 @@ exports.createSkemaMT = async (idSkema, { no, jenis }) => {
             ? device.jenis
             : String(jenis).trim();
 
+            console.log("DEBUG createSkemaMT:", {
+    idSkema,
+    no,
+    jenis,
+    resolvedJenis,
+    types: {
+        idSkema: typeof idSkema,
+        no: typeof no,
+        resolvedJenis: typeof resolvedJenis
+    }
+});
     const result = await db.query(
+
         `
         INSERT INTO "SKEMA_MT"
         (
