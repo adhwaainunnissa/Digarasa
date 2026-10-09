@@ -2803,8 +2803,8 @@ const [kodeJenis, setKodeJenis] = useState<"2" | "null">("2");
                                                 }
                                                 className="w-full rounded-xl border border-blue-100 bg-[#F5F9FF] px-3.5 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-[#0066FF] focus:bg-white focus:ring-4 focus:ring-[#0066FF]/10"
                                             >
-                                                <option value="2">2 — Simpan angka 2</option>
-                                                <option value="null">NULL — Simpan NULL</option>
+                                                <option value="2">2 — Critical</option>
+                                                <option value="null">NULL — Normal</option>
                                             </select>
 
                                             <p className="mt-1 text-[10px] text-slate-400">
