@@ -89,7 +89,7 @@ function Login() {
             y: 0,
             transition: {
                 duration: 0.65,
-                ease: "easeOut",
+                ease: "easeOut" as const,
             },
         },
     };
@@ -104,7 +104,7 @@ function Login() {
         transition: {
             duration: 4,
             repeat: Infinity,
-            ease: "easeInOut",
+            ease: "easeInOut" as const,
         },
     };
 
@@ -127,7 +127,7 @@ function Login() {
                 }}
                 transition={{
                     duration: 1.8,
-                    ease: "easeOut",
+                    ease: "easeOut" as const,
                 }}
                 className="absolute inset-0 h-full w-full object-cover"
             />
@@ -165,7 +165,7 @@ function Login() {
                 transition={{
                     duration: 10,
                     repeat: Infinity,
-                    ease: "easeInOut",
+                    ease: "easeInOut" as const,
                 }}
                 className="absolute -left-40 -top-40 h-[520px] w-[520px] rounded-full bg-[#00BFFF]/35 blur-[130px]"
             />
@@ -183,7 +183,7 @@ function Login() {
                 transition={{
                     duration: 12,
                     repeat: Infinity,
-                    ease: "easeInOut",
+                    ease: "easeInOut" as const,
                 }}
                 className="absolute -bottom-40 right-[10%] h-[500px] w-[500px] rounded-full bg-[#FFD600]/30 blur-[130px]"
             />
@@ -199,7 +199,7 @@ function Login() {
                 transition={{
                     duration: 8,
                     repeat: Infinity,
-                    ease: "easeInOut",
+                    ease: "easeInOut" as const,
                 }}
                 className="absolute right-[20%] top-[15%] h-[280px] w-[280px] rounded-full bg-[#0066FF]/25 blur-[100px]"
             />
@@ -476,7 +476,7 @@ function Login() {
                     transition={{
                         duration: 0.9,
                         delay: 0.2,
-                        ease: "easeOut",
+                        ease: "easeOut" as const,
                     }}
                     className="w-full max-w-[510px]"
                 >
@@ -995,7 +995,7 @@ function Login() {
                             transition={{
                                 duration: 3,
                                 repeat: Infinity,
-                                ease: "easeInOut",
+                                ease: "easeInOut" as const,
                             }}
                             className="absolute h-[550px] w-[550px] rounded-full bg-[#FFD600]/30 blur-[130px]"
                         />
@@ -1009,7 +1009,7 @@ function Login() {
                             transition={{
                                 duration: 4,
                                 repeat: Infinity,
-                                ease: "easeInOut",
+                                ease: "easeInOut" as const,
                             }}
                             className="absolute h-[450px] w-[450px] rounded-full bg-[#00BFFF]/30 blur-[120px]"
                         />
@@ -1070,7 +1070,7 @@ function Login() {
                                 transition={{
                                     duration: 2.2,
                                     repeat: Infinity,
-                                    ease: "easeInOut",
+                                    ease: "easeInOut" as const,
                                 }}
                                 className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-[28px] border border-white/30 bg-white"
                             >
@@ -1118,7 +1118,7 @@ function Login() {
                                     }}
                                     transition={{
                                         duration: 1.2,
-                                        ease: "easeInOut",
+                                        ease: "easeInOut" as const,
                                     }}
                                     className="h-full rounded-full bg-gradient-to-r from-[#0066FF] via-[#00BFFF] to-[#FFD600]"
                                 />

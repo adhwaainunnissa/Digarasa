@@ -17,7 +17,7 @@ import {
 import OlsConfig from "../components/ols/OlsConfig";
 import OlsHistory from "../components/ols/OlsHistory";
 
-type Tab = "status" | "Konfigurasi" | "Riwayat";
+type Tab = "status" | "config" | "history";
 
 interface OlsData {
     id_sw: number | string;
@@ -775,8 +775,6 @@ export default function Ols() {
                     <div className="p-4 md:p-6">
                         <OlsConfig
                             data={configData}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
                         />
                     </div>
                 )}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../../api/axios";
+import api from "../api/axios";
 import {
     History,
     RefreshCw,
@@ -415,7 +415,7 @@ export default function OlsHistory() {
                                                         "ID",
                                                         "history_id",
                                                     ],
-                                                    index
+                                                    String(index)
                                                 )
                                             )
                                         }

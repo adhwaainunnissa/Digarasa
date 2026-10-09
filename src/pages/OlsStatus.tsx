@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../../api/axios";
+import api from "../api/axios";
 
 import {
     Pencil,
@@ -322,33 +322,25 @@ export default function OlsStatus({
 
         try {
 
-            await api.delete(
-                `/ols/config/${id}`
-            );
+       await api.delete(`/ols/config/${id}`);
 
-            setItems((prev) =>
-                prev.filter((item) => {
+setItems((prev) =>
+    prev.filter((item) => {
+        const itemId = getValue(
+            item,
+            [
+                "id_sw",
+                "id",
+                "ID",
+                "ols_id",
+                "id_ols",
+            ],
+            ""
+        );
 
-                    const id =
-                getValue(
-                item,
-                [
-                  "id_sw",
-                  "id",
-                  "ID",
-                  "ols_id",
-                   "id_ols",
-                  ],
-                String(index + 1)
-             );
-
-                    return (
-                        String(itemId) !==
-                        String(id)
-                    );
-
-                })
-            );
+        return String(itemId) !== String(id);
+    })
+);
 
             setIsDeleteOpen(false);
             setSelectedItem(null);
