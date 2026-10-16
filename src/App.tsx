@@ -1,8 +1,9 @@
+
 import {
-    BrowserRouter,
-    Navigate,
-    Route,
-    Routes,
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
 } from "react-router-dom";
 
 import Users from "./pages/Users";
@@ -18,128 +19,91 @@ import Ols from "./pages/Ols";
 import UfrStepRelay from "./pages/ufr/UfrStepRelay";
 import UfrBeban from "./pages/ufr/UfrBeban";
 
-// ======================================================
-// APP
-// ======================================================
+// Sesuaikan base path untuk production dan development
+const basename = import.meta.env.PROD ? "/Digarasa" : "/";
 
 function App() {
-    return (
-        <BrowserRouter>
-            <Routes>
+  return (
+    <BrowserRouter basename={basename}>
+      <Routes>
+        {/* LOGIN */}
+        <Route path="/login" element={<Login />} />
 
-                {/* ==================================================
-                    LOGIN
-                ================================================== */}
+        {/* HALAMAN YANG MEMERLUKAN LOGIN */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route
+              path="/dashboard"
+              element={<Dashboard />}
+            />
 
-                <Route
-                    path="/login"
-                    element={<Login />}
-                />
+            <Route
+              path="/database"
+              element={<Database />}
+            />
 
-                {/* ==================================================
-                    PROTECTED AREA
-                ================================================== */}
+            <Route
+              path="/skema"
+              element={<Skema />}
+            />
 
-                <Route element={<ProtectedRoute />}>
+            <Route
+              path="/device"
+              element={<Device />}
+            />
 
-                    <Route element={<MainLayout />}>
+            <Route
+              path="/ols"
+              element={<Ols />}
+            />
 
-                        {/* DASHBOARD */}
+            <Route
+              path="/ufr/step-relay"
+              element={<UfrStepRelay />}
+            />
 
-                        <Route
-                            path="/dashboard"
-                            element={<Dashboard />}
-                        />
+            <Route
+              path="/ufr/beban"
+              element={<UfrBeban />}
+            />
 
-                        {/* DATABASE */}
+            <Route
+              path="/profile"
+              element={<Profile />}
+            />
 
-                        <Route
-                            path="/database"
-                            element={<Database />}
-                        />
+            <Route
+              path="/users"
+              element={<Users />}
+            />
+          </Route>
+        </Route>
 
-                        {/* SKEMA */}
+        {/* HALAMAN AWAL */}
+        <Route
+          path="/"
+          element={
+            <Navigate
+              to="/login"
+              replace
+            />
+          }
+        />
 
-                        <Route
-                            path="/skema"
-                            element={<Skema />}
-                        />
-
-                        {/* DEVICE */}
-
-                        <Route
-                            path="/device"
-                            element={<Device />}
-                        />
-
-                        {/* OLS */}
-
-                        <Route
-                            path="/ols"
-                            element={<Ols />}
-                        />
-
-                        {/* UFR */}
-
-                        <Route
-                            path="/ufr/step-relay"
-                            element={<UfrStepRelay />}
-                        />
-
-                        <Route
-                            path="/ufr/beban"
-                            element={<UfrBeban />}
-                        />
-
-                        {/* PROFILE */}
-
-                        <Route
-                            path="/profile"
-                            element={<Profile />}
-                        />
-
-                        {/* USERS */}
-
-                        <Route
-                            path="/users"
-                            element={<Users />}
-                        />
-
-                    </Route>
-
-                </Route>
-
-                {/* ==================================================
-                    DEFAULT
-                ================================================== */}
-
-                <Route
-                    path="/"
-                    element={
-                        <Navigate
-                            to="/login"
-                            replace
-                        />
-                    }
-                />
-
-                {/* ==================================================
-                    PAGE NOT FOUND
-                ================================================== */}
-
-                <Route
-                    path="*"
-                    element={
-                        <Navigate
-                            to="/login"
-                            replace
-                        />
-                    }
-                />
-
-            </Routes>
-        </BrowserRouter>
-    );
+        {/* HALAMAN TIDAK DITEMUKAN */}
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/login"
+              replace
+            />
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App;
+
